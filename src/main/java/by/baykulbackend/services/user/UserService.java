@@ -1,17 +1,18 @@
 package by.baykulbackend.services.user;
 
 import by.baykulbackend.config.PasswordEncoderConfig;
+import by.baykulbackend.database.dao.user.Profile;
 import by.baykulbackend.database.dao.user.User;
+import by.baykulbackend.database.model.Role;
 import by.baykulbackend.database.repository.user.IRefreshTokenRepository;
 import by.baykulbackend.database.repository.user.IUserRepository;
 import by.baykulbackend.exceptions.NotFoundException;
-import by.baykulbackend.security.AuthService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,49 +28,118 @@ public class UserService {
     private final AuthService authService;
     private final PasswordEncoderConfig passwordEncoderConfig;
 
+    /**
+     * Retrieves a user by their login (username).
+     *
+     * @param login the username to search for
+     * @return Optional containing the User if found
+     */
     public Optional<User> getByLogin(@NonNull String login) {
-        User user = iUserRepository.findByLogin(login);
-
-        if (user ==  null) {
-            throw new UsernameNotFoundException("User not found");
-        }
-
-        return Optional.of(user);
+        return Optional.ofNullable(iUserRepository.findByLogin(login));
     }
 
+    /**
+     * Retrieves a user by their email address.
+     *
+     * @param email the email address to search for
+     * @return Optional containing the User if found
+     */
     public Optional<User> getByEmail(@NonNull String email) {
-        User user = iUserRepository.findByEmail(email);
-
-        if (user ==  null) {
-            throw new UsernameNotFoundException("User not found");
-        }
-
-        return Optional.of(user);
+        return Optional.ofNullable(iUserRepository.findByEmail(email));
     }
 
+    /**
+     * Retrieves a user by their phone number.
+     *
+     * @param phoneNumber the phone number to search for
+     * @return Optional containing the User if found
+     */
     public Optional<User> getByPhoneNumber(@NonNull String phoneNumber) {
-        User user = iUserRepository.findByEmail(phoneNumber);
-
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found");
-        }
-
-        return Optional.of(user);
+        return Optional.ofNullable(iUserRepository.findByPhoneNumber(phoneNumber));
     }
 
-    public User createUser(User user) {
+    /**
+     * Creates a new user in the system.
+     *
+     * @param user the User object to create
+     * @return ResponseEntity with success/error message
+     */
+    public ResponseEntity<?> createUser(User user) {
+        Map<String, String> response = new HashMap<>();
+
+        if (isNotValidNewUser(user, response)) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        if (hasNotUniqueData(user, response)) {
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        }
+
         user.setCreatedTs(LocalDateTime.now());
         user.setUpdatedTs(LocalDateTime.now());
-        user.setBlocked(false);
+        user.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
+
+        Profile profile = new Profile();
+        profile.setUser(user);
+        user.setProfile(profile);
+
         iUserRepository.save(user);
+        response.put("create_user", "true");
+        response.put("id", user.getId().toString());
         log.warn("User {} has ben created. -> {}", user.getLogin(),
                 authService.getAuthInfo().getPrincipal());
 
-        return user;
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * Registers a new user in the system.
+     * Validates input and creates a new user with USER role.
+     *
+     * @param user the User object containing registration details
+     * @return ResponseEntity with success message or validation errors
+     */
+    public ResponseEntity<?> registerUser(User user) {
+        Map<String, String> response = new HashMap<>();
+
+        if (isNotValidNewUser(user, response)) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        if (hasNotUniqueData(user, response)) {
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        }
+
+        User newUser = new User();
+        newUser.setCreatedTs(LocalDateTime.now());
+        newUser.setUpdatedTs(LocalDateTime.now());
+        newUser.setLogin(user.getLogin());
+        newUser.setEmail(user.getEmail());
+        newUser.setPhoneNumber(user.getPhoneNumber());
+
+        Profile profile = new Profile();
+        profile.setUser(newUser);
+        newUser.setProfile(profile);
+
+        newUser.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
+
+        iUserRepository.save(newUser);
+        response.put("registration_user", "true");
+        response.put("id", newUser.getId().toString());
+        log.info("The user with id {} is registered. Login: {}", newUser.getId(), newUser.getLogin());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Deletes a user by their ID.
+     *
+     * @param id the UUID of the user to delete
+     * @return ResponseEntity with success/error message
+     * @throws NotFoundException if no user is found with the given ID
+     */
     public ResponseEntity<?> deleteUserById(UUID id) {
-        Map<Object, Object> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         User userFromDB = iUserRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
 
         if (userFromDB == null) {
@@ -78,7 +148,7 @@ public class UserService {
             log.warn("User could not be deleted. User with id = {} not found -> {}",
                     id, authService.getAuthInfo().getPrincipal());
 
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
         } else {
             iUserRepository.deleteById(id);
             response.put("delete_user", "true");
@@ -88,17 +158,21 @@ public class UserService {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Updates an existing user's information.
+     * Only updates non-null fields from the provided user object.
+     *
+     * @param id   the UUID of the user to update
+     * @param user the User object containing updated fields
+     * @return ResponseEntity with success/error message
+     * @throws NotFoundException if no user is found with the given ID
+     */
     public ResponseEntity<?> updateUser(UUID id, User user) {
-        Map<Object, Object> response = new HashMap<>();
+        Map<String, String> response = new HashMap<>();
         User userFromDB = iUserRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
 
-        if (userFromDB == null) {
-            response.put("error", "update user");
-            response.put("text", "User could not be update. User with id " + id + " not found");
-            log.warn("User could not be updated. User with id {} not found -> {}",
-                    id, authService.getAuthInfo().getPrincipal());
-
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        if (hasNotUniqueData(user, response)) {
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
         }
 
         if (user.getLogin() != null) {
@@ -114,21 +188,16 @@ public class UserService {
         }
 
         if (user.getPhoneNumber() != null) {
-            userFromDB.setPhoneNumber(user.getEmail());
+            userFromDB.setPhoneNumber(user.getPhoneNumber());
             log.info("User's phone number with id {} has been updated -> {}",
                     id, authService.getAuthInfo().getPrincipal());
         }
 
         if (user.getPassword() != null) {
+            // Delete all refresh tokens for security
             userFromDB.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
             iRefreshTokenRepository.deleteByUser(userFromDB);
             log.info("The password of User with the id {} has been updated -> {}",
-                    id, authService.getAuthInfo().getPrincipal());
-        }
-
-        if (user.getRole() != null) {
-            userFromDB.setRole(user.getRole());
-            log.info("The role of User with the id {} has been updated -> {}",
                     id, authService.getAuthInfo().getPrincipal());
         }
 
@@ -152,6 +221,14 @@ public class UserService {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Searches for users by login, email, or phone number containing the given text.
+     * Performs case-insensitive search for login and email, exact match for phone number.
+     * Returns distinct users to avoid duplicates.
+     *
+     * @param text the search text to match against user attributes
+     * @return List of matching User objects
+     */
     public List<User> searchUser(String text) {
         List<User> result = new ArrayList<>();
         result.addAll(iUserRepository.findByLoginContainingIgnoreCase(text));
@@ -159,5 +236,66 @@ public class UserService {
         result.addAll(iUserRepository.findByPhoneNumberContaining(text));
 
         return result.stream().distinct().collect(Collectors.toList());
+    }
+
+    /**
+     * Validates a uniqueness of new user data.
+     *
+     * @param user the User object to validate
+     * @param response Map to collect validation error messages
+     * @return true if user data is unique, false otherwise
+     */
+    public boolean hasNotUniqueData(User user, Map<String, String> response) {
+        User userFoundByLogin = iUserRepository.findByLogin(user.getLogin());
+        if (userFoundByLogin != null && !userFoundByLogin.getId().equals(user.getId())) {
+            response.put("error_login", "User with that login already exists");
+            log.warn("User with login '{}' already exists", user.getLogin());
+            return true;
+        }
+
+        User userFoundByEmail = iUserRepository.findByEmail(user.getEmail());
+        if (userFoundByEmail != null && !userFoundByEmail.getId().equals(user.getId())) {
+            response.put("error_email", "User with that email already exists");
+            log.warn("User with email '{}' already exists", user.getEmail());
+            return true;
+        }
+
+        User userFoundByPhoneNumber = iUserRepository.findByPhoneNumber(user.getPhoneNumber());
+        if (userFoundByPhoneNumber != null && !userFoundByPhoneNumber.getId().equals(user.getId())) {
+            response.put("error_phone_number", "User with that phone number already exists");
+            log.warn("User with phone number '{}' already exists", user.getPhoneNumber());
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Validates a new user request.
+     *
+     * @param user the User object to validate
+     * @param response Map to collect validation error messages
+     * @return true if user is valid for creation, false otherwise
+     */
+    public boolean isNotValidNewUser(User user, Map<String, String> response) {
+        if (StringUtils.isBlank(user.getLogin())) {
+            response.put("error_login", "The login must not be empty");
+            log.warn("The login must not be empty");
+            return true;
+        }
+
+        if (StringUtils.isBlank(user.getPassword())) {
+            response.put("error_password", "The password must not be empty");
+            log.warn("The password must not be empty");
+            return true;
+        }
+
+        if (StringUtils.isBlank(user.getEmail()) && StringUtils.isBlank(user.getPhoneNumber())) {
+            response.put("error_data", "One of the following must be filled in: email, phone number");
+            log.warn("One of the following must be filled in: email, phone number");
+            return true;
+        }
+
+        return false;
     }
 }

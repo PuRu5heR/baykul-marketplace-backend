@@ -1,0 +1,21 @@
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    try-it-out-enabled: true
+    filter: true
+    display-request-duration: true
+    default-model-expand-depth: 2
+    default-model-rendering: example
+  show-actuator: false
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  paths-to-match:
+    - /api/**
+  packages-to-scan:
+    - by.baykulbackend.controller

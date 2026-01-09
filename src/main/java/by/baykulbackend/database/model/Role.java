@@ -1,5 +1,6 @@
 package by.baykulbackend.database.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -7,6 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
+@Schema(description = "Role enum defining user roles and their associated permissions")
 public enum Role {
     USER(Set.of(Permission.USERS_READ)),
     ADMIN(Set.of(Permission.USERS_READ, Permission.USERS_WRITE));
