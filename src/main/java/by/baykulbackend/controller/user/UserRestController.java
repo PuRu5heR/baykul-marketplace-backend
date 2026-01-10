@@ -1,7 +1,7 @@
 package by.baykulbackend.controller.user;
 
 import by.baykulbackend.database.dao.user.User;
-import by.baykulbackend.database.model.Views;
+import by.baykulbackend.database.dto.Views;
 import by.baykulbackend.database.repository.user.IUserRepository;
 import by.baykulbackend.exceptions.NotFoundException;
 import by.baykulbackend.services.user.UserService;
@@ -223,7 +223,6 @@ public class UserRestController {
                                     value = """
                                             {
                                               "error": "User not found",
-                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
                                             }
                                             """
                             )

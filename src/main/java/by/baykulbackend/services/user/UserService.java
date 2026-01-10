@@ -1,9 +1,9 @@
 package by.baykulbackend.services.user;
 
 import by.baykulbackend.config.PasswordEncoderConfig;
+import by.baykulbackend.database.dao.balance.Balance;
 import by.baykulbackend.database.dao.user.Profile;
 import by.baykulbackend.database.dao.user.User;
-import by.baykulbackend.database.model.Role;
 import by.baykulbackend.database.repository.user.IRefreshTokenRepository;
 import by.baykulbackend.database.repository.user.IUserRepository;
 import by.baykulbackend.exceptions.NotFoundException;
@@ -15,7 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -81,6 +81,11 @@ public class UserService {
         profile.setUser(user);
         user.setProfile(profile);
 
+        Balance balance = new Balance();
+        balance.setUser(user);
+        balance.setAccount(new BigDecimal("0.00"));
+        user.setBalance(balance);
+
         iUserRepository.save(user);
         response.put("create_user", "true");
         response.put("id", user.getId().toString());
@@ -117,11 +122,15 @@ public class UserService {
         profile.setUser(newUser);
         newUser.setProfile(profile);
 
+        Balance balance = new Balance();
+        balance.setUser(newUser);
+        balance.setAccount(new BigDecimal("0.00"));
+        newUser.setBalance(balance);
+
         newUser.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
 
         iUserRepository.save(newUser);
         response.put("registration_user", "true");
-        response.put("id", newUser.getId().toString());
         log.info("The user with id {} is registered. Login: {}", newUser.getId(), newUser.getLogin());
 
         return ResponseEntity.ok(response);

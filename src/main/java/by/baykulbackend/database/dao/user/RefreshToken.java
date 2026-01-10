@@ -1,11 +1,12 @@
 package by.baykulbackend.database.dao.user;
 
-import by.baykulbackend.database.model.Views;
+import by.baykulbackend.database.dto.Views;
 import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Data
@@ -60,4 +61,24 @@ public class RefreshToken {
     @JoinColumn(name = "user_id")
     @JsonView({Views.RefreshTokenView.Get.class, Views.UserWithRefreshTokenView.class})
     private User user;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        RefreshToken refreshToken = (RefreshToken) o;
+
+        return Objects.equals(id, refreshToken.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

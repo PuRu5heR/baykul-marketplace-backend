@@ -1,4 +1,4 @@
-package by.baykulbackend.security;
+package by.baykulbackend.database.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

@@ -1,7 +1,7 @@
 package by.baykulbackend.controller.user;
 
 import by.baykulbackend.database.dao.user.RefreshToken;
-import by.baykulbackend.database.model.Views;
+import by.baykulbackend.database.dto.Views;
 import by.baykulbackend.database.repository.user.IRefreshTokenRepository;
 import by.baykulbackend.exceptions.NotFoundException;
 import by.baykulbackend.services.user.RefreshTokenService;
@@ -188,7 +188,6 @@ public class RefreshTokenRestController {
                                     value = """
                                             {
                                               "error": "Refresh token not found",
-                                              "message": "Refresh token with id 123e4567-e89b-12d3-a456-426614174000 not found"
                                             }
                                             """
                             )

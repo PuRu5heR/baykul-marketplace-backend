@@ -1,13 +1,13 @@
 package by.baykulbackend.database.dao.user;
 
+import by.baykulbackend.database.dao.balance.Balance;
 import by.baykulbackend.database.model.Role;
-import by.baykulbackend.database.model.Views;
+import by.baykulbackend.database.dto.Views;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -27,17 +27,19 @@ import java.util.UUID;
 public class User {
     @Schema(
             description = "Unique identifier",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class, Views.UserView.Profile.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
     private UUID id;
 
     @Schema(
             description = "Timestamp when the user was created",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "2024-01-15T10:30:00"
     )
     @Column(name = "created_ts")
     @JsonView(Views.UserView.Get.class)
@@ -46,7 +48,8 @@ public class User {
 
     @Schema(
             description = "Timestamp when the user was last updated",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "2024-01-15T10:30:00"
     )
     @Column(name = "updated_ts")
     @JsonView(Views.UserView.Get.class)
@@ -57,10 +60,11 @@ public class User {
             description = "Unique username for authentication",
             requiredMode = Schema.RequiredMode.REQUIRED,
             minLength = 1,
-            maxLength = 50
+            maxLength = 50,
+            example = "john"
     )
     @Column(name = "login", nullable = false, unique = true, length = 50)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class, Views.UserView.Profile.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
     private String login;
 
     @Schema(
@@ -76,27 +80,30 @@ public class User {
             description = "User's email address",
             maxLength = 100,
             format = "email",
-            nullable = true
+            nullable = true,
+            example = "example@email.com"
     )
     @Column(name = "email", unique = true, length = 100)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class, Views.UserView.Profile.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
     private String email;
 
     @Schema(
             description = "User's phone number",
             maxLength = 20,
             format = "phone number",
-            nullable = true
+            nullable = true,
+            example = "+375296435434"
     )
     @Column(name = "phone_number", length = 20)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class, Views.UserView.Profile.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
     private String phoneNumber;
 
     @Schema(
             description = "User's role in the system",
             allowableValues = {"USER", "ADMIN"},
             requiredMode = Schema.RequiredMode.REQUIRED,
-            defaultValue = "USER"
+            defaultValue = "USER",
+            example = "USER"
     )
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -106,7 +113,8 @@ public class User {
     @Schema(
             description = "Indicates if the user account is blocked",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            defaultValue = "false"
+            defaultValue = "false",
+            example = "false"
     )
     @Column(name = "blocked", nullable = false)
     @JsonView({Views.UserView.Get.class, Views.UserView.Put.class})
@@ -122,11 +130,19 @@ public class User {
 
     @Schema(
             description = "User's profile containing personal information",
-            accessMode = Schema.AccessMode.READ_ONLY
+            example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174000\", \"surname\": \"Surname\"}"
     )
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonView(Views.UserView.Profile.class)
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
     private Profile profile;
+
+    @Schema(
+            description = "User's balance",
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174000\", \"value\": \"120.00\"}"
+    )
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Balance balance;
 
     @Override
     public boolean equals(Object o) {
