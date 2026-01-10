@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,7 +30,6 @@ public class User {
             accessMode = Schema.AccessMode.READ_ONLY
     )
     @Id
-    @NotNull
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
     @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class, Views.UserView.Profile.class})
@@ -38,18 +39,18 @@ public class User {
             description = "Timestamp when the user was created",
             accessMode = Schema.AccessMode.READ_ONLY
     )
-    @NotNull
-    @Column(name = "created_ts", updatable = false, nullable = false)
+    @Column(name = "created_ts")
     @JsonView(Views.UserView.Get.class)
+    @CreationTimestamp
     private LocalDateTime createdTs;
 
     @Schema(
             description = "Timestamp when the user was last updated",
             accessMode = Schema.AccessMode.READ_ONLY
     )
-    @NotNull
-    @Column(name = "updated_ts", updatable = false, nullable = false)
+    @Column(name = "updated_ts")
     @JsonView(Views.UserView.Get.class)
+    @UpdateTimestamp
     private LocalDateTime updatedTs;
 
     @Schema(
@@ -58,7 +59,6 @@ public class User {
             minLength = 1,
             maxLength = 50
     )
-    @NotNull
     @Column(name = "login", nullable = false, unique = true, length = 50)
     @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class, Views.UserView.Profile.class})
     private String login;
@@ -68,7 +68,6 @@ public class User {
             requiredMode = Schema.RequiredMode.REQUIRED,
             accessMode = Schema.AccessMode.WRITE_ONLY
     )
-    @NotNull
     @Column(name = "password", nullable = false)
     @JsonView({Views.UserView.Post.class, Views.UserView.Put.class})
     private String password;
@@ -99,7 +98,6 @@ public class User {
             requiredMode = Schema.RequiredMode.REQUIRED,
             defaultValue = "USER"
     )
-    @NotNull
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
     @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
@@ -110,7 +108,6 @@ public class User {
             requiredMode = Schema.RequiredMode.REQUIRED,
             defaultValue = "false"
     )
-    @NotNull
     @Column(name = "blocked", nullable = false)
     @JsonView({Views.UserView.Get.class, Views.UserView.Put.class})
     private Boolean blocked = false;
@@ -127,7 +124,6 @@ public class User {
             description = "User's profile containing personal information",
             accessMode = Schema.AccessMode.READ_ONLY
     )
-    @NotNull
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonView(Views.UserView.Profile.class)
     private Profile profile;

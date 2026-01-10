@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,16 +45,89 @@ public class UserRestController {
                     description = "List of users retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "All users response example",
+                                    summary = "List of all users",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [
+                                                  {
+                                                    "id": "123e4567-e89b-12d3-a456-426614174000",
+                                                    "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                                    "ipAddress": "192.168.1.100"
+                                                  }
+                                                ],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              },
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174002",
+                                                "createdTs": "2024-01-16T09:15:00",
+                                                "updatedTs": "2024-01-19T11:20:00",
+                                                "login": "jane_smith",
+                                                "email": "jane.smith@example.com",
+                                                "phoneNumber": "+375292345678",
+                                                "role": "ADMIN",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174011",
+                                                  "surname": "Smith",
+                                                  "name": "Jane",
+                                                  "patronymic": "Ann"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
@@ -74,22 +148,85 @@ public class UserRestController {
                     description = "User retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)
+                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            examples = @ExampleObject(
+                                    name = "Single user response example",
+                                    summary = "User details",
+                                    value = """
+                                            {
+                                              "id": "123e4567-e89b-12d3-a456-426614174001",
+                                              "createdTs": "2024-01-15T10:30:00",
+                                              "updatedTs": "2024-01-20T14:45:30",
+                                              "login": "john_doe",
+                                              "email": "john.doe@example.com",
+                                              "phoneNumber": "+375291234567",
+                                              "role": "USER",
+                                              "blocked": false,
+                                              "refreshTokens": [
+                                                {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
+                                                  "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                                  "ipAddress": "192.168.1.100"
+                                                }
+                                              ],
+                                              "profile": {
+                                                "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                "surname": "Doe",
+                                                "name": "John",
+                                                "patronymic": "Michael"
+                                              }
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "404",
                     description = "User not found",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "User not found",
+                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
+                                            }
+                                            """
+                            )
                     )
             )
     })
@@ -99,7 +236,8 @@ public class UserRestController {
     public User getOne(
             @Parameter(
                     description = "UUID of the user to retrieve",
-                    required = true
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @PathVariable UUID id) {
         return iUserRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
@@ -117,16 +255,65 @@ public class UserRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "Search results example",
+                                    summary = "Search results",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
@@ -135,7 +322,8 @@ public class UserRestController {
     public List<User> search(
             @Parameter(
                     description = "Text to search for in login, email, or phone number",
-                    required = true
+                    required = true,
+                    example = "john"
             )
             @PathVariable String text) {
         return userService.searchUser(text);
@@ -153,16 +341,65 @@ public class UserRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "Search by login results example",
+                                    summary = "Search by login results",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
@@ -171,7 +408,8 @@ public class UserRestController {
     public List<User> getByLogin(
             @Parameter(
                     description = "Login text to search for (case-insensitive)",
-                    required = true
+                    required = true,
+                    example = "john"
             )
             @PathVariable String login) {
         return iUserRepository.findByLoginContainingIgnoreCase(login);
@@ -189,16 +427,65 @@ public class UserRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "Search by email results example",
+                                    summary = "Search by email results",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
@@ -207,7 +494,8 @@ public class UserRestController {
     public List<User> getByEmail(
             @Parameter(
                     description = "Email text to search for (case-insensitive)",
-                    required = true
+                    required = true,
+                    example = "example.com"
             )
             @PathVariable String email) {
         return iUserRepository.findByEmailContainingIgnoreCase(email);
@@ -225,16 +513,65 @@ public class UserRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "Search by phone results example",
+                                    summary = "Search by phone results",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
@@ -243,7 +580,8 @@ public class UserRestController {
     public List<User> getByPhoneNumber(
             @Parameter(
                     description = "Phone number text to search for",
-                    required = true
+                    required = true,
+                    example = "291234567"
             )
             @PathVariable String phoneNumber) {
         return iUserRepository.findByPhoneNumberContaining(phoneNumber);
@@ -257,7 +595,21 @@ public class UserRestController {
                     description = "User data to create",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Post.class)
+                            schema = @Schema(implementation = Views.UserView.Post.class),
+                            examples = @ExampleObject(
+                                    name = "Create user request example",
+                                    summary = "User creation request",
+                                    value = """
+                                            {
+                                              "login": "new_user",
+                                              "password": "securePassword123",
+                                              "email": "new.user@example.com",
+                                              "phoneNumber": "+375292345678",
+                                              "role": "USER",
+                                              "blocked": false
+                                            }
+                                            """
+                            )
                     )
             )
     )
@@ -266,24 +618,84 @@ public class UserRestController {
                     responseCode = "200",
                     description = "User created successfully",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Create user success example",
+                                    summary = "User created successfully",
+                                    value = """
+                                            {
+                                              "create_user": "true",
+                                              "id": "123e4567-e89b-12d3-a456-426614174003"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Bad request - invalid user data"
+                    description = "Bad request - invalid user data",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Validation error example",
+                                    summary = "Validation errors",
+                                    value = """
+                                            {
+                                              "error_login": "The login must not be empty",
+                                              "error_password": "The password must not be empty"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "Conflict - user with same login/email/phone already exists"
+                    description = "Conflict - user with same login/email/phone already exists",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Conflict example",
+                                    summary = "Duplicate user data",
+                                    value = """
+                                            {
+                                              "error_login": "User with that login already exists",
+                                              "error_email": "User with that email already exists"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
@@ -300,7 +712,19 @@ public class UserRestController {
                     description = "User registration data",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Post.class)
+                            schema = @Schema(implementation = Views.UserView.Post.class),
+                            examples = @ExampleObject(
+                                    name = "Registration request example",
+                                    summary = "User registration request",
+                                    value = """
+                                            {
+                                              "login": "new_user",
+                                              "password": "securePassword123",
+                                              "email": "new.user@example.com",
+                                              "phoneNumber": "+375292345678"
+                                            }
+                                            """
+                            )
                     )
             )
     )
@@ -309,21 +733,51 @@ public class UserRestController {
                     responseCode = "200",
                     description = "User registered successfully",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Registration success example",
+                                    summary = "User registered successfully",
+                                    value = """
+                                            {
+                                              "registration_user": "true",
+                                              "id": "123e4567-e89b-12d3-a456-426614174003"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
                     description = "Bad request - validation errors",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Registration validation error example",
+                                    summary = "Registration validation errors",
+                                    value = """
+                                            {
+                                              "error_login": "The login must not be empty",
+                                              "error_data": "One of the following must be filled in: email, phone number"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "409",
                     description = "Conflict - user with same login/email/phone already exists",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Registration conflict example",
+                                    summary = "Duplicate registration data",
+                                    value = """
+                                            {
+                                              "error_login": "User with that login already exists",
+                                              "error_phone_number": "User with that phone number already exists"
+                                            }
+                                            """
+                            )
                     )
             )
     })
@@ -337,10 +791,23 @@ public class UserRestController {
             description = "Updates an existing user's information. Only non-null fields are updated. Requires users:read permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User data to create",
+                    description = "User data to update",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Put.class)
+                            schema = @Schema(implementation = Views.UserView.Put.class),
+                            examples = @ExampleObject(
+                                    name = "Update user request example",
+                                    summary = "User update request",
+                                    value = """
+                                            {
+                                              "login": "updated_login",
+                                              "email": "updated.email@example.com",
+                                              "phoneNumber": "+375293456789",
+                                              "password": "newSecurePassword456",
+                                              "blocked": false
+                                            }
+                                            """
+                            )
                     )
             )
     )
@@ -349,35 +816,81 @@ public class UserRestController {
                     responseCode = "200",
                     description = "User updated successfully",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Update user success example",
+                                    summary = "User updated successfully",
+                                    value = """
+                                            {
+                                              "update_user": "true"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
                     description = "Unauthorized - JWT token missing or invalid",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "403",
                     description = "Forbidden - insufficient permissions",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "404",
                     description = "User not found",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "User not found",
+                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "409",
                     description = "Conflict - user with same login/email/phone already exists",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Conflict example",
+                                    summary = "Duplicate user data",
+                                    value = """
+                                            {
+                                              "error_login": "User with that login already exists",
+                                              "error_email": "User with that email already exists"
+                                            }
+                                            """
+                            )
                     )
             )
     })
@@ -387,7 +900,8 @@ public class UserRestController {
     public ResponseEntity<?> update(
             @Parameter(
                     description = "UUID of the user to update",
-                    required = true
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @PathVariable UUID id,
             @RequestBody @JsonView(Views.UserView.Put.class) User user) {
@@ -404,26 +918,65 @@ public class UserRestController {
                     responseCode = "200",
                     description = "User deleted successfully",
                     content = @Content(
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Bad request - user not found",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Delete user success example",
+                                    summary = "User deleted successfully",
+                                    value = """
+                                            {
+                                              "delete_user": "true"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found"
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "User not found",
+                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
@@ -431,7 +984,8 @@ public class UserRestController {
     public ResponseEntity<?> delete(
             @Parameter(
                     description = "UUID of the user to delete",
-                    required = true
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @PathVariable UUID id) {
         return userService.deleteUserById(id);

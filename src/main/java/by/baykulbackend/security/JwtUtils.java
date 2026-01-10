@@ -5,6 +5,8 @@ import io.jsonwebtoken.Claims;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class JwtUtils {
 
@@ -18,7 +20,7 @@ public final class JwtUtils {
     public static JwtAuthentication generate(Claims claims) {
         final JwtAuthentication jwtInfoToken = new JwtAuthentication();
         jwtInfoToken.setRole(getRole(claims));
-        jwtInfoToken.setId(claims.get("id", Long.class));
+        jwtInfoToken.setId(claims.get("id", String.class));
         jwtInfoToken.setLogin(claims.getSubject());
 
         return jwtInfoToken;

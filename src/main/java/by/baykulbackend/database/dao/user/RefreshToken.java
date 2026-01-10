@@ -4,7 +4,6 @@ import by.baykulbackend.database.model.Views;
 import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.UUID;
@@ -16,9 +15,9 @@ import java.util.UUID;
 public class RefreshToken {
     @Schema(
             description = "Unique identifier",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "123e4567-e89b-12d3-a456-426614174000"
     )
-    @NotNull
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -27,7 +26,8 @@ public class RefreshToken {
 
     @Schema(
             description = "JWT refresh token string",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqb2huX2RvZSIsImlhdC..."
     )
     @Column(name = "name")
     @JsonView({Views.RefreshTokenView.Get.class, Views.UserWithRefreshTokenView.class})
@@ -35,7 +35,8 @@ public class RefreshToken {
 
     @Schema(
             description = "User agent string of the client device/browser",
-            nullable = true
+            nullable = true,
+            example = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
     @Column(name = "user_agent")
     @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class, Views.UserWithRefreshTokenView.class})
@@ -43,16 +44,17 @@ public class RefreshToken {
 
     @Schema(
             description = "IP address of the client",
-            nullable = true
+            nullable = true,
+            example = "192.168.1.100"
     )
     @Column(name = "ip_address")
     @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class, Views.UserWithRefreshTokenView.class})
     public String ipAddress;
 
-    @NotNull
     @Schema(
             description = "User associated with this refresh token",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174001\", \"login\": \"john_doe\"}"
     )
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

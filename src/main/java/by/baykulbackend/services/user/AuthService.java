@@ -96,7 +96,7 @@ public class AuthService {
 
             if (saveRefreshToken != null && saveRefreshToken.equals(refreshToken)) {
                 final User user = Optional.ofNullable(iUserRepository.findByLogin(login))
-                        .orElseThrow(() -> new JwtAuthenticationException("User not found", HttpStatus.FORBIDDEN));
+                        .orElseThrow(() -> new JwtAuthenticationException("User not found", HttpStatus.NOT_FOUND));
                 final String accessToken = jwtProvider.generateAccessToken(user);
                 String clientIp = requestService.getClientIp(request);
 

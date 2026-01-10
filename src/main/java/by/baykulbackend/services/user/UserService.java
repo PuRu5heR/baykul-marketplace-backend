@@ -75,8 +75,6 @@ public class UserService {
             return new ResponseEntity<>(response, HttpStatus.CONFLICT);
         }
 
-        user.setCreatedTs(LocalDateTime.now());
-        user.setUpdatedTs(LocalDateTime.now());
         user.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
 
         Profile profile = new Profile();
@@ -111,8 +109,6 @@ public class UserService {
         }
 
         User newUser = new User();
-        newUser.setCreatedTs(LocalDateTime.now());
-        newUser.setUpdatedTs(LocalDateTime.now());
         newUser.setLogin(user.getLogin());
         newUser.setEmail(user.getEmail());
         newUser.setPhoneNumber(user.getPhoneNumber());
@@ -201,7 +197,7 @@ public class UserService {
                     id, authService.getAuthInfo().getPrincipal());
         }
 
-        if (user.getBlocked() != null) {
+        if (user.getBlocked() != userFromDB.getBlocked()) {
             userFromDB.setBlocked(user.getBlocked());
 
             if (user.getBlocked()) {
@@ -214,7 +210,6 @@ public class UserService {
                     id, authService.getAuthInfo().getPrincipal());
         }
 
-        userFromDB.setUpdatedTs(LocalDateTime.now());
         iUserRepository.save(userFromDB);
         response.put("update_user", "true");
 
@@ -246,25 +241,31 @@ public class UserService {
      * @return true if user data is unique, false otherwise
      */
     public boolean hasNotUniqueData(User user, Map<String, String> response) {
-        User userFoundByLogin = iUserRepository.findByLogin(user.getLogin());
-        if (userFoundByLogin != null && !userFoundByLogin.getId().equals(user.getId())) {
-            response.put("error_login", "User with that login already exists");
-            log.warn("User with login '{}' already exists", user.getLogin());
-            return true;
+        if (user.getLogin() != null) {
+            User userFoundByLogin = iUserRepository.findByLogin(user.getLogin());
+            if (userFoundByLogin != null && !userFoundByLogin.getId().equals(user.getId())) {
+                response.put("error_login", "User with that login already exists");
+                log.warn("User with login '{}' already exists", user.getLogin());
+                return true;
+            }
         }
 
-        User userFoundByEmail = iUserRepository.findByEmail(user.getEmail());
-        if (userFoundByEmail != null && !userFoundByEmail.getId().equals(user.getId())) {
-            response.put("error_email", "User with that email already exists");
-            log.warn("User with email '{}' already exists", user.getEmail());
-            return true;
+        if (user.getEmail() != null) {
+            User userFoundByEmail = iUserRepository.findByEmail(user.getEmail());
+            if (userFoundByEmail != null && !userFoundByEmail.getId().equals(user.getId())) {
+                response.put("error_email", "User with that email already exists");
+                log.warn("User with email '{}' already exists", user.getEmail());
+                return true;
+            }
         }
 
-        User userFoundByPhoneNumber = iUserRepository.findByPhoneNumber(user.getPhoneNumber());
-        if (userFoundByPhoneNumber != null && !userFoundByPhoneNumber.getId().equals(user.getId())) {
-            response.put("error_phone_number", "User with that phone number already exists");
-            log.warn("User with phone number '{}' already exists", user.getPhoneNumber());
-            return true;
+        if (user.getPhoneNumber() != null) {
+            User userFoundByPhoneNumber = iUserRepository.findByPhoneNumber(user.getPhoneNumber());
+            if (userFoundByPhoneNumber != null && !userFoundByPhoneNumber.getId().equals(user.getId())) {
+                response.put("error_phone_number", "User with that phone number already exists");
+                log.warn("User with phone number '{}' already exists", user.getPhoneNumber());
+                return true;
+            }
         }
 
         return false;

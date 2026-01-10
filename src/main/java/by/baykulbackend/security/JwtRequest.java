@@ -7,13 +7,33 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Schema(
+        description = "Authentication request",
+        examples = {
+                """
+                {
+                  "login": "john_doe",
+                  "password": "securePassword123"
+                }
+                """
+        }
+)
 public class JwtRequest {
 
-    @NotBlank
-    @Schema(description = "Username", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "Login is required")
+    @Schema(
+            description = "Username",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "john_doe"
+    )
     private String login;
 
-    @NotBlank
-    @Schema(description = "Password", requiredMode = Schema.RequiredMode.REQUIRED, format = "password")
+    @NotBlank(message = "Password is required")
+    @Schema(
+            description = "Password",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            format = "password",
+            example = "securePassword123"
+    )
     private String password;
 }

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,16 +45,68 @@ public class RefreshTokenRestController {
                     description = "List of refresh tokens retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.RefreshTokenView.Get.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.RefreshTokenView.Get.class)),
+                            examples = @ExampleObject(
+                                    name = "All tokens response example",
+                                    summary = "List of refresh tokens",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174000",
+                                                "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                                "ipAddress": "192.168.1.100",
+                                                "user": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                  "login": "john_doe"
+                                                }
+                                              },
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174002",
+                                                "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "userAgent": "PostmanRuntime/7.29.0",
+                                                "ipAddress": "192.168.1.101",
+                                                "user": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                  "login": "john_doe"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @GetMapping
@@ -74,22 +127,71 @@ public class RefreshTokenRestController {
                     description = "Refresh token retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.RefreshTokenView.Get.class)
+                            schema = @Schema(implementation = Views.RefreshTokenView.Get.class),
+                            examples = @ExampleObject(
+                                    name = "Single token response example",
+                                    summary = "Refresh token details",
+                                    value = """
+                                            {
+                                              "id": "123e4567-e89b-12d3-a456-426614174000",
+                                              "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                              "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                              "ipAddress": "192.168.1.100",
+                                              "user": {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "login": "john_doe"
+                                              }
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "404",
                     description = "Refresh token not found",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "Refresh token not found",
+                                              "message": "Refresh token with id 123e4567-e89b-12d3-a456-426614174000 not found"
+                                            }
+                                            """
+                            )
                     )
             )
     })
@@ -99,7 +201,8 @@ public class RefreshTokenRestController {
     public RefreshToken getOne(
             @Parameter(
                     description = "UUID of the refresh token to retrieve",
-                    required = true
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174000"
             )
             @PathVariable UUID id) {
         return iRefreshTokenRepository.findById(id).orElseThrow(() -> new NotFoundException("Refresh token not found"));
@@ -116,20 +219,84 @@ public class RefreshTokenRestController {
                     description = "User's refresh tokens retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.RefreshTokenView.Get.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.RefreshTokenView.Get.class)),
+                            examples = @ExampleObject(
+                                    name = "User tokens response example",
+                                    summary = "User's refresh tokens",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174000",
+                                                "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                                "ipAddress": "192.168.1.100",
+                                                "user": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                  "login": "john_doe"
+                                                }
+                                              },
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174002",
+                                                "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "userAgent": "PostmanRuntime/7.29.0",
+                                                "ipAddress": "192.168.1.101",
+                                                "user": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                  "login": "john_doe"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found"
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "User not found example",
+                                    value = """
+                                            {
+                                              "error": "User not found",
+                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @GetMapping("/user/{id}")
@@ -138,7 +305,8 @@ public class RefreshTokenRestController {
     public List<RefreshToken> getUserRefTokensByUserId(
             @Parameter(
                     description = "UUID of the user",
-                    required = true
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @PathVariable UUID id) {
         return refreshTokenService.findUserRefTokensByUserId(id);
@@ -156,16 +324,68 @@ public class RefreshTokenRestController {
                     description = "Current user's refresh tokens retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.RefreshTokenView.Get.class))
+                            array = @ArraySchema(schema = @Schema(implementation = Views.RefreshTokenView.Get.class)),
+                            examples = @ExampleObject(
+                                    name = "Current user tokens response example",
+                                    summary = "Current user's refresh tokens",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174000",
+                                                "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                                "ipAddress": "192.168.1.100",
+                                                "user": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                  "login": "john_doe"
+                                                }
+                                              },
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174002",
+                                                "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                "userAgent": "PostmanRuntime/7.29.0",
+                                                "ipAddress": "192.168.1.101",
+                                                "user": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                  "login": "john_doe"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @GetMapping("/user")
@@ -186,27 +406,81 @@ public class RefreshTokenRestController {
                     responseCode = "200",
                     description = "Refresh token deleted successfully",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Delete success example",
+                                    summary = "Successful deletion",
+                                    value = """
+                                            {
+                                              "delete_refresh_token": "true"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
                     description = "Bad request - user doesn't own the token",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Bad request example",
+                                    summary = "Token ownership error",
+                                    value = """
+                                            {
+                                              "delete_refresh_token": "false"
+                                            }
+                                            """
+                            )
                     )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid"
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Forbidden - insufficient permissions"
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Refresh token not found"
+                    description = "Refresh token not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "Refresh token not found",
+                                              "message": "Refresh token with id 123e4567-e89b-12d3-a456-426614174000 not found"
+                                            }
+                                            """
+                            )
+                    )
             )
     })
     @DeleteMapping("/{id}")
@@ -214,7 +488,8 @@ public class RefreshTokenRestController {
     public ResponseEntity<?> delete(
             @Parameter(
                     description = "UUID of the refresh token to delete",
-                    required = true
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174000"
             )
             @PathVariable UUID id) {
         return refreshTokenService.deleteById(id);

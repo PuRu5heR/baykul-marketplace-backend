@@ -6,8 +6,9 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,9 +23,9 @@ import java.util.UUID;
 public class Profile {
     @Schema(
             description = "Unique identifier",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "123e4567-e89b-12d3-a456-426614174000"
     )
-    @NotNull
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -33,27 +34,29 @@ public class Profile {
 
     @Schema(
             description = "Timestamp when the profile was created",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "2024-01-15T10:30:00"
     )
-    @NotNull
-    @Column(name = "created_ts", updatable = false)
+    @Column(name = "created_ts")
     @JsonView(Views.UserView.Profile.class)
+    @CreationTimestamp
     private LocalDateTime createdTs;
 
     @Schema(
             description = "Timestamp when the profile was last updated",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "2024-01-20T14:45:30"
     )
-    @NotNull
     @Column(name = "updated_ts")
     @JsonView(Views.UserView.Profile.class)
+    @UpdateTimestamp
     private LocalDateTime updatedTs;
 
     @Schema(
             description = "User associated with this profile",
-            accessMode = Schema.AccessMode.READ_ONLY
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174001\", \"login\": \"john_doe\"}"
     )
-    @NotNull
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
     @JsonView(Views.UserView.Profile.class)
@@ -62,7 +65,8 @@ public class Profile {
     @Schema(
             description = "User's surname",
             maxLength = 50,
-            nullable = true
+            nullable = true,
+            example = "Doe"
     )
     @Column(name = "surname", length = 50)
     @JsonView({Views.UserView.Get.class, Views.UserView.Profile.class})
@@ -71,7 +75,8 @@ public class Profile {
     @Schema(
             description = "User's name",
             maxLength = 50,
-            nullable = true
+            nullable = true,
+            example = "John"
     )
     @Column(name = "name", length = 50)
     @JsonView({Views.UserView.Get.class, Views.UserView.Profile.class})
@@ -80,7 +85,8 @@ public class Profile {
     @Schema(
             description = "User's patronymic",
             maxLength = 50,
-            nullable = true
+            nullable = true,
+            example = "Michael"
     )
     @Column(name = "patronymic", length = 50)
     @JsonView({Views.UserView.Get.class, Views.UserView.Profile.class})

@@ -16,8 +16,6 @@ import org.springframework.core.env.Environment;
 
 import java.util.List;
 
-// TODO: add examples for swagger documentation
-
 @Configuration
 @SecurityScheme(
     name = "bearerAuth",
