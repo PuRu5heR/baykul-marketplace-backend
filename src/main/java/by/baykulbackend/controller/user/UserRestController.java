@@ -1,7 +1,7 @@
 package by.baykulbackend.controller.user;
 
 import by.baykulbackend.database.dao.user.User;
-import by.baykulbackend.database.dto.Views;
+import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.database.repository.user.IUserRepository;
 import by.baykulbackend.exceptions.NotFoundException;
 import by.baykulbackend.services.user.UserService;

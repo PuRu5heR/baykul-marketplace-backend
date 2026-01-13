@@ -1,4 +1,4 @@
-package by.baykulbackend.database.dto;
+package by.baykulbackend.database.dto.balance;
 
 import by.baykulbackend.database.dao.balance.BalanceOperationType;
 import io.swagger.v3.oas.annotations.media.Schema;

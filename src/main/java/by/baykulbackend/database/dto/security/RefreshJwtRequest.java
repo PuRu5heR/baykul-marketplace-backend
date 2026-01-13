@@ -1,4 +1,4 @@
-package by.baykulbackend.database.dto;
+package by.baykulbackend.database.dto.security;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

@@ -1,7 +1,7 @@
 package by.baykulbackend.controller.user;
 
 import by.baykulbackend.database.dao.user.RefreshToken;
-import by.baykulbackend.database.dto.Views;
+import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.database.repository.user.IRefreshTokenRepository;
 import by.baykulbackend.exceptions.NotFoundException;
 import by.baykulbackend.services.user.RefreshTokenService;

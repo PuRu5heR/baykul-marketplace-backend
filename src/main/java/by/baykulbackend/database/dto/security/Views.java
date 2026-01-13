@@ -1,4 +1,4 @@
-package by.baykulbackend.database.dto;
+package by.baykulbackend.database.dto.security;
 
 public class Views {
     public interface UserView {

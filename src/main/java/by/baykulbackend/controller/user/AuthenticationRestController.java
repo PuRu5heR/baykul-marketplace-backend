@@ -2,9 +2,9 @@ package by.baykulbackend.controller.user;
 
 import by.baykulbackend.database.repository.user.IRefreshTokenRepository;
 import by.baykulbackend.services.user.AuthService;
-import by.baykulbackend.database.dto.JwtRequest;
-import by.baykulbackend.database.dto.JwtResponse;
-import by.baykulbackend.database.dto.RefreshJwtRequest;
+import by.baykulbackend.database.dto.security.JwtRequest;
+import by.baykulbackend.database.dto.security.JwtResponse;
+import by.baykulbackend.database.dto.security.RefreshJwtRequest;
 import by.baykulbackend.services.user.RefreshTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

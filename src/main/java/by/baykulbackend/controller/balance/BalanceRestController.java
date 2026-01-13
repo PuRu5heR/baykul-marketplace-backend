@@ -1,8 +1,8 @@
 package by.baykulbackend.controller.balance;
 
 import by.baykulbackend.database.dao.balance.Balance;
-import by.baykulbackend.database.dto.BalanceOperationDto;
-import by.baykulbackend.database.dto.Views;
+import by.baykulbackend.database.dto.balance.BalanceOperationDto;
+import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.database.repository.balance.IBalanceRepository;
 import by.baykulbackend.exceptions.NotFoundException;
 import by.baykulbackend.services.balance.BalanceService;

@@ -2,7 +2,7 @@ package by.baykulbackend.services.balance;
 
 import by.baykulbackend.database.dao.balance.Balance;
 import by.baykulbackend.database.dao.balance.BalanceHistory;
-import by.baykulbackend.database.dto.BalanceOperationDto;
+import by.baykulbackend.database.dto.balance.BalanceOperationDto;
 import by.baykulbackend.database.repository.balance.IBalanceRepository;
 import by.baykulbackend.exceptions.BadRequestException;
 import by.baykulbackend.exceptions.NotFoundException;

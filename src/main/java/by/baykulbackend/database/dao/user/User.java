@@ -2,7 +2,7 @@ package by.baykulbackend.database.dao.user;
 
 import by.baykulbackend.database.dao.balance.Balance;
 import by.baykulbackend.database.model.Role;
-import by.baykulbackend.database.dto.Views;
+import by.baykulbackend.database.dto.security.Views;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
