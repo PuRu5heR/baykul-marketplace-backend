@@ -39,7 +39,7 @@ public class PartRestController {
 
     @Operation(
             summary = "Get all parts",
-            description = "Retrieves all spare parts from the system. Requires users:read permission.",
+            description = "Retrieves all spare parts from the system. Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -120,7 +120,7 @@ public class PartRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping
     @JsonView(Views.PartView.Get.class)
     public List<Part> getAll() {
@@ -129,7 +129,7 @@ public class PartRestController {
 
     @Operation(
             summary = "Get part by ID",
-            description = "Retrieves a specific spare part by UUID. Requires users:read permission.",
+            description = "Retrieves a specific spare part by UUID. Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -209,7 +209,7 @@ public class PartRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/{id}")
     @JsonView(Views.PartView.Get.class)
     public Part getOne(
@@ -224,7 +224,7 @@ public class PartRestController {
 
     @Operation(
             summary = "Create new part",
-            description = "Creates a new spare part in the system. Requires users:write permission.",
+            description = "Creates a new spare part in the system. Requires products:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Part data to create",
@@ -336,7 +336,7 @@ public class PartRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:write')")
+    @PreAuthorize("hasAnyAuthority('products:write')")
     @PostMapping
     public ResponseEntity<?> create(@RequestBody @JsonView(Views.PartView.Post.class) Part part) {
         return partService.createPart(part);
@@ -344,7 +344,8 @@ public class PartRestController {
 
     @Operation(
             summary = "Upload parts from CSV file",
-            description = "Uploads and parses multiple spare parts from a CSV file. File must be in UTF-8 encoding with semicolon (;) separator. Requires users:write permission.",
+            description = "Uploads and parses multiple spare parts from a CSV file. " +
+                    "File must be in UTF-8 encoding with semicolon (;) separator. Requires products:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "CSV file containing parts data",
@@ -433,7 +434,7 @@ public class PartRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:write')")
+    @PreAuthorize("hasAnyAuthority('products:write')")
     @PostMapping(value = "/upload", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<?> uploadParts(
@@ -447,7 +448,7 @@ public class PartRestController {
 
     @Operation(
             summary = "Update part",
-            description = "Updates an existing part's information. Only non-null fields are updated. Requires users:write permission.",
+            description = "Updates an existing part's information. Only non-null fields are updated. Requires products:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Part data to update",
@@ -557,7 +558,7 @@ public class PartRestController {
             )
     })
     @Transactional
-    @PreAuthorize("hasAnyAuthority('users:write')")
+    @PreAuthorize("hasAnyAuthority('products:write')")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
             @Parameter(
@@ -572,7 +573,7 @@ public class PartRestController {
 
     @Operation(
             summary = "Delete part",
-            description = "Deletes a part by ID. Requires users:write permission.",
+            description = "Deletes a part by ID. Requires products:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -641,7 +642,7 @@ public class PartRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:write')")
+    @PreAuthorize("hasAnyAuthority('products:write')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(
             @Parameter(

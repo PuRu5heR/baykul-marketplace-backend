@@ -46,7 +46,7 @@ public class UserSearchRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserView.Get.class)),
                             examples = @ExampleObject(
                                     name = "Search results example",
                                     summary = "Search results",
@@ -61,7 +61,6 @@ public class UserSearchRestController {
                                                 "phoneNumber": "+375291234567",
                                                 "role": "USER",
                                                 "blocked": false,
-                                                "refreshTokens": [],
                                                 "profile": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174010",
                                                   "surname": "Doe",
@@ -108,7 +107,7 @@ public class UserSearchRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping("/search/{text}")
     public List<User> search(
             @Parameter(
@@ -132,7 +131,7 @@ public class UserSearchRestController {
                     description = "User retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            schema = @Schema(implementation = Views.UserView.Get.class),
                             examples = @ExampleObject(
                                     name = "Single user response example",
                                     summary = "User details",
@@ -146,14 +145,6 @@ public class UserSearchRestController {
                                               "phoneNumber": "+375291234567",
                                               "role": "USER",
                                               "blocked": false,
-                                              "refreshTokens": [
-                                                {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                  "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                                                  "ipAddress": "192.168.1.100"
-                                                }
-                                              ],
                                               "profile": {
                                                 "id": "123e4567-e89b-12d3-a456-426614174010",
                                                 "surname": "Doe",
@@ -214,7 +205,7 @@ public class UserSearchRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping("/exact/login/{login}")
     public User getByLogin(
             @Parameter(
@@ -238,7 +229,7 @@ public class UserSearchRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserView.Get.class)),
                             examples = @ExampleObject(
                                     name = "Search by login results example",
                                     summary = "Search by login results",
@@ -253,7 +244,6 @@ public class UserSearchRestController {
                                                 "phoneNumber": "+375291234567",
                                                 "role": "USER",
                                                 "blocked": false,
-                                                "refreshTokens": [],
                                                 "profile": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174010",
                                                   "surname": "Doe",
@@ -300,7 +290,7 @@ public class UserSearchRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping("/search/login/{login}")
     public List<User> searchByLogin(
             @Parameter(
@@ -324,7 +314,7 @@ public class UserSearchRestController {
                     description = "User retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            schema = @Schema(implementation = Views.UserView.Get.class),
                             examples = @ExampleObject(
                                     name = "Single user response example",
                                     summary = "User details",
@@ -338,14 +328,6 @@ public class UserSearchRestController {
                                               "phoneNumber": "+375291234567",
                                               "role": "USER",
                                               "blocked": false,
-                                              "refreshTokens": [
-                                                {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                  "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                                                  "ipAddress": "192.168.1.100"
-                                                }
-                                              ],
                                               "profile": {
                                                 "id": "123e4567-e89b-12d3-a456-426614174010",
                                                 "surname": "Doe",
@@ -406,7 +388,7 @@ public class UserSearchRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping("/exact/email/{email}")
     public User getByEmail(
             @Parameter(
@@ -430,7 +412,7 @@ public class UserSearchRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserView.Get.class)),
                             examples = @ExampleObject(
                                     name = "Search by email results example",
                                     summary = "Search by email results",
@@ -445,7 +427,6 @@ public class UserSearchRestController {
                                                 "phoneNumber": "+375291234567",
                                                 "role": "USER",
                                                 "blocked": false,
-                                                "refreshTokens": [],
                                                 "profile": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174010",
                                                   "surname": "Doe",
@@ -492,7 +473,7 @@ public class UserSearchRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping("/search/email/{email}")
     public List<User> searchByEmail(
             @Parameter(
@@ -516,7 +497,7 @@ public class UserSearchRestController {
                     description = "User retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            schema = @Schema(implementation = Views.UserView.Get.class),
                             examples = @ExampleObject(
                                     name = "Single user response example",
                                     summary = "User details",
@@ -530,14 +511,6 @@ public class UserSearchRestController {
                                               "phoneNumber": "+375291234567",
                                               "role": "USER",
                                               "blocked": false,
-                                              "refreshTokens": [
-                                                {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                  "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                                                  "ipAddress": "192.168.1.100"
-                                                }
-                                              ],
                                               "profile": {
                                                 "id": "123e4567-e89b-12d3-a456-426614174010",
                                                 "surname": "Doe",
@@ -598,7 +571,7 @@ public class UserSearchRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping("/exact/phoneNumber/{phoneNumber}")
     public User getByPhoneNumber(
             @Parameter(
@@ -622,7 +595,7 @@ public class UserSearchRestController {
                     description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserView.Get.class)),
                             examples = @ExampleObject(
                                     name = "Search by phone results example",
                                     summary = "Search by phone results",
@@ -637,7 +610,6 @@ public class UserSearchRestController {
                                                 "phoneNumber": "+375291234567",
                                                 "role": "USER",
                                                 "blocked": false,
-                                                "refreshTokens": [],
                                                 "profile": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174010",
                                                   "surname": "Doe",
@@ -684,7 +656,7 @@ public class UserSearchRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping("/search/phoneNumber/{phoneNumber}")
     public List<User> searchByPhoneNumber(
             @Parameter(

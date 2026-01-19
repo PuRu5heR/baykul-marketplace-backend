@@ -4,6 +4,7 @@ import by.baykulbackend.database.dao.user.User;
 import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.database.repository.user.IUserRepository;
 import by.baykulbackend.exceptions.NotFoundException;
+import by.baykulbackend.services.user.AuthService;
 import by.baykulbackend.services.user.UserService;
 import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +34,7 @@ import java.util.UUID;
 public class UserRestController {
     private final IUserRepository iUserRepository;
     private final UserService userService;
+    private final AuthService authService;
 
     @Operation(
             summary = "Get all users",
@@ -45,7 +47,7 @@ public class UserRestController {
                     description = "List of users retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserView.Get.class)),
                             examples = @ExampleObject(
                                     name = "All users response example",
                                     summary = "List of all users",
@@ -60,14 +62,6 @@ public class UserRestController {
                                                 "phoneNumber": "+375291234567",
                                                 "role": "USER",
                                                 "blocked": false,
-                                                "refreshTokens": [
-                                                  {
-                                                    "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                    "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                                                    "ipAddress": "192.168.1.100"
-                                                  }
-                                                ],
                                                 "profile": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174010",
                                                   "surname": "Doe",
@@ -84,7 +78,6 @@ public class UserRestController {
                                                 "phoneNumber": "+375292345678",
                                                 "role": "ADMIN",
                                                 "blocked": false,
-                                                "refreshTokens": [],
                                                 "profile": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174011",
                                                   "surname": "Smith",
@@ -131,7 +124,7 @@ public class UserRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserView.Get.class)
     @GetMapping
     public List<User> getAll() {
         return iUserRepository.findAll();
@@ -139,7 +132,7 @@ public class UserRestController {
 
     @Operation(
             summary = "Get user by ID",
-            description = "Retrieves a specific user by UUID with their refresh tokens. Requires users:read permission.",
+            description = "Retrieves a specific user by UUID with their refresh tokens. Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -148,7 +141,7 @@ public class UserRestController {
                     description = "User retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            schema = @Schema(implementation = Views.UserFullView.class),
                             examples = @ExampleObject(
                                     name = "Single user response example",
                                     summary = "User details",
@@ -175,6 +168,10 @@ public class UserRestController {
                                                 "surname": "Doe",
                                                 "name": "John",
                                                 "patronymic": "Michael"
+                                              },
+                                              "balance": {
+                                                "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                "account": 0
                                               }
                                             }
                                             """
@@ -229,8 +226,8 @@ public class UserRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @PreAuthorize("hasAnyAuthority('users:write')")
+    @JsonView(Views.UserFullView.class)
     @GetMapping("/{id}")
     public User getOne(
             @Parameter(
@@ -442,7 +439,7 @@ public class UserRestController {
 
     @Operation(
             summary = "Update user",
-            description = "Updates an existing user's information. Only non-null fields are updated. Requires users:read permission.",
+            description = "Updates an existing user's information. Only non-null fields are updated. Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "User data to update",
@@ -549,7 +546,7 @@ public class UserRestController {
             )
     })
     @Transactional
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('users:write')")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
             @Parameter(
@@ -559,7 +556,7 @@ public class UserRestController {
             )
             @PathVariable UUID id,
             @RequestBody @JsonView(Views.UserView.Put.class) User user) {
-        return userService.updateUser(id, user);
+        return userService.updateUserById(id, user);
     }
 
     @Operation(

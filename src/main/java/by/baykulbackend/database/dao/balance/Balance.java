@@ -63,7 +63,7 @@ public class Balance {
     )
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
-    @JsonView(Views.BalanceWithUserView.class)
+    @JsonView(Views.BalanceFullView.class)
     private User user;
 
     @Schema(
@@ -80,7 +80,7 @@ public class Balance {
             accessMode = Schema.AccessMode.READ_ONLY
     )
     @OneToMany(mappedBy = "balance", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonView(Views.BalanceHistoryView.Get.class)
+    @JsonView(Views.BalanceFullView.class)
     private List<BalanceHistory> balanceHistoryList;
 
     @Override

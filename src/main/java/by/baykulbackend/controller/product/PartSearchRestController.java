@@ -32,7 +32,7 @@ public class PartSearchRestController {
 
     @Operation(
             summary = "Search parts",
-            description = "Searches parts by article or name containing the specified text (case-insensitive). Requires users:read permission.",
+            description = "Searches parts by article or name containing the specified text (case-insensitive). Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -113,7 +113,7 @@ public class PartSearchRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/{text}")
     @JsonView(Views.PartView.Get.class)
     public List<Part> search(
@@ -128,7 +128,7 @@ public class PartSearchRestController {
 
     @Operation(
             summary = "Get part by exact article",
-            description = "Retrieves a specific part by exact article number. Requires users:read permission.",
+            description = "Retrieves a specific part by exact article number. Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -208,7 +208,7 @@ public class PartSearchRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/exact/article/{article}")
     @JsonView(Views.PartView.Get.class)
     public Part getByArticle(
@@ -223,7 +223,7 @@ public class PartSearchRestController {
 
     @Operation(
             summary = "Search parts by article",
-            description = "Searches parts by article containing the specified text (case-insensitive). Requires users:read permission.",
+            description = "Searches parts by article containing the specified text (case-insensitive). Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -304,7 +304,7 @@ public class PartSearchRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/article/{article}")
     @JsonView(Views.PartView.Get.class)
     public List<Part> searchByArticle(
@@ -319,7 +319,7 @@ public class PartSearchRestController {
 
     @Operation(
             summary = "Get parts by exact name",
-            description = "Retrieves parts by exact name. Requires users:read permission.",
+            description = "Retrieves parts by exact name. Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -386,7 +386,7 @@ public class PartSearchRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/exact/name/{name}")
     @JsonView(Views.PartView.Get.class)
     public List<Part> getByName(
@@ -401,7 +401,7 @@ public class PartSearchRestController {
 
     @Operation(
             summary = "Search parts by name",
-            description = "Searches parts by name containing the specified text (case-insensitive). Requires users:read permission.",
+            description = "Searches parts by name containing the specified text (case-insensitive). Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -482,7 +482,7 @@ public class PartSearchRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/name/{name}")
     @JsonView(Views.PartView.Get.class)
     public List<Part> searchByName(
@@ -497,7 +497,7 @@ public class PartSearchRestController {
 
     @Operation(
             summary = "Get parts by exact brand",
-            description = "Retrieves parts by exact brand name. Requires users:read permission.",
+            description = "Retrieves parts by exact brand name. Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -578,7 +578,7 @@ public class PartSearchRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/exact/brand/{brand}")
     @JsonView(Views.PartView.Get.class)
     public List<Part> getByBrand(
@@ -593,7 +593,7 @@ public class PartSearchRestController {
 
     @Operation(
             summary = "Search parts by brand",
-            description = "Searches parts by brand containing the specified text (case-insensitive). Requires users:read permission.",
+            description = "Searches parts by brand containing the specified text (case-insensitive). Requires products:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -674,7 +674,7 @@ public class PartSearchRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('products:read')")
     @GetMapping("/brand/{brand}")
     @JsonView(Views.PartView.Get.class)
     public List<Part> searchByBrand(

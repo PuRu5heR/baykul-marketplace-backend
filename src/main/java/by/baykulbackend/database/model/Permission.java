@@ -7,7 +7,11 @@ import lombok.Getter;
 @Schema(description = "Permission enum defining system permissions")
 public enum Permission {
     USERS_READ("users:read"),
-    USERS_WRITE("users:write");
+    USERS_WRITE("users:write"),
+    PRODUCT_READ("products:read"),
+    PRODUCT_WRITE("products:write"),
+    BALANCE_READ("balances:read"),
+    BALANCE_WRITE("balances:write");
 
     private final String permission;
 

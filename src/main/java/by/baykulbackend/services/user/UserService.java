@@ -4,6 +4,7 @@ import by.baykulbackend.config.PasswordEncoderConfig;
 import by.baykulbackend.database.dao.balance.Balance;
 import by.baykulbackend.database.dao.user.Profile;
 import by.baykulbackend.database.dao.user.User;
+import by.baykulbackend.database.model.Role;
 import by.baykulbackend.database.repository.user.IRefreshTokenRepository;
 import by.baykulbackend.database.repository.user.IUserRepository;
 import by.baykulbackend.exceptions.NotFoundException;
@@ -27,8 +28,10 @@ public class UserService {
     private final AuthService authService;
     private final PasswordEncoderConfig passwordEncoderConfig;
 
+    // TODO: realize user's profile
     /**
      * Creates a new user in the system.
+     * Validates input.
      *
      * @param user the User object to create
      * @return ResponseEntity with success/error message
@@ -45,6 +48,14 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
+
+        if (user.getRole() == null) {
+            user.setRole(Role.USER);
+        }
+
+        if (user.getBlocked() == null) {
+            user.setBlocked(false);
+        }
 
         Profile profile = new Profile();
         profile.setUser(user);
@@ -65,44 +76,16 @@ public class UserService {
     }
 
     /**
-     * Registers a new user in the system.
-     * Validates input and creates a new user with USER role.
+     * Registers a new user in the system with USER role.
      *
      * @param user the User object containing registration details
      * @return ResponseEntity with success message or validation errors
      */
     public ResponseEntity<?> registerUser(User user) {
-        Map<String, String> response = new HashMap<>();
+        user.setRole(Role.USER);
+        user.setBlocked(false);
 
-        if (isNotValidNewUser(user, response)) {
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }
-
-        if (hasNotUniqueData(user, response)) {
-            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
-        }
-
-        User newUser = new User();
-        newUser.setLogin(user.getLogin());
-        newUser.setEmail(user.getEmail());
-        newUser.setPhoneNumber(user.getPhoneNumber());
-
-        Profile profile = new Profile();
-        profile.setUser(newUser);
-        newUser.setProfile(profile);
-
-        Balance balance = new Balance();
-        balance.setUser(newUser);
-        balance.setAccount(new BigDecimal("0.00"));
-        newUser.setBalance(balance);
-
-        newUser.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
-
-        iUserRepository.save(newUser);
-        response.put("registration_user", "true");
-        log.info("The user with id {} is registered. Login: {}", newUser.getId(), newUser.getLogin());
-
-        return ResponseEntity.ok(response);
+        return createUser(user);
     }
 
     /**
@@ -124,6 +107,21 @@ public class UserService {
     }
 
     /**
+     * Updates an existing user's information taking user to update from authentication principal.
+     * Only updates non-null fields from the provided user object.
+     *
+     * @param user the User object containing updated fields
+     * @return ResponseEntity with success/error message
+     * @throws NotFoundException if no user is found with authentication principal
+     */
+    public ResponseEntity<?> updateProfile(User user) {
+        User userFromDB = iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        return updateUser(userFromDB, user);
+    }
+
+    /**
      * Updates an existing user's information.
      * Only updates non-null fields from the provided user object.
      *
@@ -132,9 +130,23 @@ public class UserService {
      * @return ResponseEntity with success/error message
      * @throws NotFoundException if no user is found with the given ID
      */
-    public ResponseEntity<?> updateUser(UUID id, User user) {
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<?> updateUserById(UUID id, User user) {
         User userFromDB = iUserRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+
+        return updateUser(userFromDB, user);
+    }
+
+    /**
+     * Updates an existing user's information.
+     * Only updates non-null fields from the provided user object.
+     *
+     * @param userFromDB the User object to update
+     * @param user       the User object containing updated fields
+     * @return ResponseEntity with success/error message
+     */
+    private ResponseEntity<?> updateUser(User userFromDB, User user) {
+        Map<String, String> response = new HashMap<>();
+        UUID id = userFromDB.getId();
 
         if (hasNotUniqueData(user, response)) {
             return new ResponseEntity<>(response, HttpStatus.CONFLICT);

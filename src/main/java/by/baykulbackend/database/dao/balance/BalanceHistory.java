@@ -61,7 +61,7 @@ public class BalanceHistory {
     )
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "balance_id", nullable = false, updatable = false)
-    @JsonView(Views.BalanceHistoryView.Get.class)
+    @JsonView(Views.BalanceHistoryFullView.class)
     private Balance balance;
 
     @Schema(
@@ -90,9 +90,9 @@ public class BalanceHistory {
             accessMode = Schema.AccessMode.READ_ONLY,
             example = "200.00"
     )
-    @Column(name = "result_balance_value")
+    @Column(name = "result_account")
     @JsonView(Views.BalanceHistoryView.Get.class)
-    private BigDecimal resultBalanceValue;
+    private BigDecimal resultAccount;
 
     @Schema(
             description = "Description of operation",

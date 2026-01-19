@@ -22,7 +22,7 @@ public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class, Views.UserWithRefreshTokenView.class})
+    @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class})
     private UUID id;
 
     @Schema(
@@ -31,7 +31,7 @@ public class RefreshToken {
             example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqb2huX2RvZSIsImlhdC..."
     )
     @Column(name = "name")
-    @JsonView({Views.RefreshTokenView.Get.class, Views.UserWithRefreshTokenView.class})
+    @JsonView({Views.RefreshTokenView.Get.class})
     private String name;
 
     @Schema(
@@ -40,7 +40,7 @@ public class RefreshToken {
             example = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
     @Column(name = "user_agent")
-    @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class, Views.UserWithRefreshTokenView.class})
+    @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class})
     public String userAgent;
 
     @Schema(
@@ -49,7 +49,7 @@ public class RefreshToken {
             example = "192.168.1.100"
     )
     @Column(name = "ip_address")
-    @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class, Views.UserWithRefreshTokenView.class})
+    @JsonView({Views.RefreshTokenView.Get.class, Views.RefreshTokenView.Put.class})
     public String ipAddress;
 
     @Schema(
@@ -59,7 +59,7 @@ public class RefreshToken {
     )
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    @JsonView({Views.RefreshTokenView.Get.class, Views.UserWithRefreshTokenView.class})
+    @JsonView(Views.RefreshTokenFullView.class)
     private User user;
 
     @Override

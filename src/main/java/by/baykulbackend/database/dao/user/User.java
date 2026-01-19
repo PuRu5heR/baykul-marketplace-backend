@@ -100,7 +100,7 @@ public class User {
 
     @Schema(
             description = "User's role in the system",
-            allowableValues = {"USER", "ADMIN"},
+            allowableValues = {"USER", "MANAGER", "ADMIN"},
             requiredMode = Schema.RequiredMode.REQUIRED,
             defaultValue = "USER",
             example = "USER"
@@ -108,7 +108,7 @@ public class User {
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
     @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
-    private Role role = Role.USER;
+    private Role role;
 
     @Schema(
             description = "Indicates if the user account is blocked",
@@ -118,14 +118,14 @@ public class User {
     )
     @Column(name = "blocked", nullable = false)
     @JsonView({Views.UserView.Get.class, Views.UserView.Put.class})
-    private Boolean blocked = false;
+    private Boolean blocked;
 
     @Schema(
             description = "List of refresh tokens associated with the user",
             accessMode = Schema.AccessMode.READ_ONLY
     )
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @JsonView(Views.UserFullView.class)
     private List<RefreshToken> refreshTokens;
 
     @Schema(
@@ -142,6 +142,7 @@ public class User {
             example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174000\", \"value\": \"120.00\"}"
     )
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonView(Views.UserFullView.class)
     private Balance balance;
 
     @Override

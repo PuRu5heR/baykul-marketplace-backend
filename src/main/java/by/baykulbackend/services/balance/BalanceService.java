@@ -77,7 +77,7 @@ public class BalanceService {
         BalanceHistory balanceHistory = new BalanceHistory();
         balanceHistory.setBalance(balance);
         balanceHistory.setAmount(balanceOperation.getAmount());
-        balanceHistory.setResultBalanceValue(newAccount);
+        balanceHistory.setResultAccount(newAccount);
         balanceHistory.setOperationType(balanceOperation.getOperationType());
         balanceHistory.setDescription(balanceOperation.getDescription());
 

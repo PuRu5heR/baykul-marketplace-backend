@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public interface IBalanceRepository extends JpaRepository<Balance, UUID> {
     Optional<Balance> findByUserId(UUID userId);
+    Optional<Balance> findByUserLogin(String userLogin);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Balance b WHERE b.user.id = :userId")

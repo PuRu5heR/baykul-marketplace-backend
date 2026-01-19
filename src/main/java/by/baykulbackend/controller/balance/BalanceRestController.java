@@ -44,7 +44,7 @@ public class BalanceRestController {
                     description = "List of balances retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            array = @ArraySchema(schema = @Schema(implementation = Views.BalanceView.Get.class)),
                             examples = @ExampleObject(
                                     name = "All balances response example",
                                     summary = "List of all balances",
@@ -54,36 +54,13 @@ public class BalanceRestController {
                                                 "id": "123e4567-e89b-12d3-a456-426614174001",
                                                 "createdTs": "2024-01-15T10:30:00",
                                                 "updatedTs": "2024-01-20T14:45:30",
-                                                "account": 2024.30,
-                                                "user": {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                  "login": "john_doe",
-                                                  "email": "john.doe@example.com",
-                                                  "profile": {
-                                                    "id": "123e4567-e89b-12d3-a456-426614174010",
-                                                    "surname": "Doe",
-                                                    "name": "John",
-                                                    "patronymic": "Michael"
-                                                  }
-                                                }
+                                                "account": 2024.30
                                               },
                                               {
                                                 "id": "522t4767-e89b-12d3-a456-426614174563",
                                                 "createdTs": "2024-01-15T10:30:00",
                                                 "updatedTs": "2024-01-20T14:45:30",
-                                                "account": -123.00,
-                                                "user": {
-                                                  "id": "522t4767-e89b-12d3-a456-426614174563",
-                                                  "login": "example",
-                                                  "email": "example@example.com",
-                                                  "profile": {
-                                                    "id": "522t4767-e89b-12d3-a456-426614174563",
-                                                    "surname": "Surname",
-                                                    "name": "Name",
-                                                    "patronymic": "Patronymic"
-                                                  }
-                                                }
-                                              }
+                                                "account": -123.00
                                             ]
                                             """
                             )
@@ -124,7 +101,7 @@ public class BalanceRestController {
     })
     @GetMapping
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.BalanceWithUserView.class)
+    @JsonView(Views.BalanceView.Get.class)
     public List<Balance> getAll() {
         return iBalanceRepository.findAll();
     }
@@ -140,7 +117,7 @@ public class BalanceRestController {
                     description = "Balance retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            schema = @Schema(implementation = Views.BalanceFullView.class),
                             examples = @ExampleObject(
                                     name = "Single balance response example",
                                     summary = "Balance details",
@@ -160,7 +137,15 @@ public class BalanceRestController {
                                                   "name": "John",
                                                   "patronymic": "Michael"
                                                 }
-                                              }
+                                              },
+                                              "balanceHistoryList": [
+                                                {
+                                                  "id": "30e9276f-ccce-45a7-9c28-e1ce22254eea"
+                                                  "amount": 10.00,
+                                                  "operationType": "REPLENISHMENT",
+                                                  "resultAccount": 20.00
+                                                }
+                                              ]
                                             }
                                             """
                             )
@@ -216,7 +201,7 @@ public class BalanceRestController {
     })
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('users:read')")
-    @JsonView(Views.BalanceWithHistoryView.class)
+    @JsonView(Views.BalanceFullView.class)
     public Balance getOne(
             @Parameter(
                     description = "UUID of the balance to retrieve",
@@ -229,7 +214,7 @@ public class BalanceRestController {
 
     @Operation(
             summary = "Get balance by user ID",
-            description = "Retrieves a specific balance by user UUID with their user. Requires users:read permission.",
+            description = "Retrieves a specific balance by user UUID with their user. Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -238,7 +223,7 @@ public class BalanceRestController {
                     description = "Balance retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            schema = @Schema(implementation = Views.BalanceFullView.class),
                             examples = @ExampleObject(
                                     name = "Single balance response example",
                                     summary = "Balance details",
@@ -258,7 +243,15 @@ public class BalanceRestController {
                                                   "name": "John",
                                                   "patronymic": "Michael"
                                                 }
-                                              }
+                                              },
+                                              "balanceHistoryList": [
+                                                {
+                                                  "id": "30e9276f-ccce-45a7-9c28-e1ce22254eea"
+                                                  "amount": 10.00,
+                                                  "operationType": "REPLENISHMENT",
+                                                  "resultAccount": 20.00
+                                                }
+                                              ]
                                             }
                                             """
                             )
@@ -313,8 +306,8 @@ public class BalanceRestController {
             )
     })
     @GetMapping("/user/{id}")
-    @PreAuthorize("hasAnyAuthority('users:read')")
-    @JsonView(Views.BalanceWithHistoryView.class)
+    @PreAuthorize("hasAnyAuthority('users:write')")
+    @JsonView(Views.BalanceFullView.class)
     public Balance getByUserId(
             @Parameter(
                     description = "UUID of the user",
