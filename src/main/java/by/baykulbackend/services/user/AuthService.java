@@ -19,8 +19,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -45,7 +43,7 @@ public class AuthService {
      *         3. Invalid password
      */
     public JwtResponse login(String userAgent, @NonNull HttpServletRequest request, @NonNull JwtRequest authRequest) {
-        final User user = Optional.ofNullable(iUserRepository.findByLogin(authRequest.getLogin()))
+        final User user = iUserRepository.findByLogin(authRequest.getLogin())
                 .orElseThrow(() -> new JwtAuthenticationException("User not found", HttpStatus.FORBIDDEN));
 
         if (user.getBlocked()) {
@@ -95,7 +93,7 @@ public class AuthService {
             final String saveRefreshToken = iRefreshTokenRepository.findRefreshTokenByName(refreshToken).getName();
 
             if (saveRefreshToken != null && saveRefreshToken.equals(refreshToken)) {
-                final User user = Optional.ofNullable(iUserRepository.findByLogin(login))
+                final User user = iUserRepository.findByLogin(login)
                         .orElseThrow(() -> new JwtAuthenticationException("User not found", HttpStatus.NOT_FOUND));
                 final String accessToken = jwtProvider.generateAccessToken(user);
                 String clientIp = requestService.getClientIp(request);
@@ -132,7 +130,7 @@ public class AuthService {
             final RefreshToken refreshTokenFromDb = iRefreshTokenRepository.findRefreshTokenByName(refreshToken);
 
             if (refreshTokenFromDb.getName() != null && refreshTokenFromDb.getName().equals(refreshToken)) {
-                final User user = Optional.ofNullable(iUserRepository.findByLogin(login))
+                final User user = iUserRepository.findByLogin(login)
                         .orElseThrow(() -> new JwtAuthenticationException("User not found", HttpStatus.FORBIDDEN));
                 final String newAccessToken = jwtProvider.generateAccessToken(user);
                 final String newRefreshToken = jwtProvider.generateRefreshToken(user);

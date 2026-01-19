@@ -217,7 +217,7 @@ public class BalanceRestController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('users:read')")
     @JsonView(Views.BalanceWithHistoryView.class)
-    public Balance get(
+    public Balance getOne(
             @Parameter(
                     description = "UUID of the balance to retrieve",
                     required = true,

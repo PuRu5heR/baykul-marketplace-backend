@@ -7,7 +7,6 @@ import by.baykulbackend.database.dao.user.User;
 import by.baykulbackend.database.repository.user.IRefreshTokenRepository;
 import by.baykulbackend.database.repository.user.IUserRepository;
 import by.baykulbackend.exceptions.NotFoundException;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -27,36 +26,6 @@ public class UserService {
     private final IRefreshTokenRepository iRefreshTokenRepository;
     private final AuthService authService;
     private final PasswordEncoderConfig passwordEncoderConfig;
-
-    /**
-     * Retrieves a user by their login (username).
-     *
-     * @param login the username to search for
-     * @return Optional containing the User if found
-     */
-    public Optional<User> getByLogin(@NonNull String login) {
-        return Optional.ofNullable(iUserRepository.findByLogin(login));
-    }
-
-    /**
-     * Retrieves a user by their email address.
-     *
-     * @param email the email address to search for
-     * @return Optional containing the User if found
-     */
-    public Optional<User> getByEmail(@NonNull String email) {
-        return Optional.ofNullable(iUserRepository.findByEmail(email));
-    }
-
-    /**
-     * Retrieves a user by their phone number.
-     *
-     * @param phoneNumber the phone number to search for
-     * @return Optional containing the User if found
-     */
-    public Optional<User> getByPhoneNumber(@NonNull String phoneNumber) {
-        return Optional.ofNullable(iUserRepository.findByPhoneNumber(phoneNumber));
-    }
 
     /**
      * Creates a new user in the system.
@@ -147,18 +116,9 @@ public class UserService {
         Map<String, String> response = new HashMap<>();
         User userFromDB = iUserRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
 
-        if (userFromDB == null) {
-            response.put("error", "delete user");
-            response.put("text", "User could not be deleted. User with id = " + id + " not found");
-            log.warn("User could not be deleted. User with id = {} not found -> {}",
-                    id, authService.getAuthInfo().getPrincipal());
-
-            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-        } else {
-            iUserRepository.deleteById(id);
-            response.put("delete_user", "true");
-            log.info("Delete user with id = {} -> {}", id, authService.getAuthInfo().getPrincipal());
-        }
+        iUserRepository.deleteById(id);
+        response.put("delete_user", "true");
+        log.info("Delete user with id = {} -> {}", id, authService.getAuthInfo().getPrincipal());
 
         return ResponseEntity.ok(response);
     }
@@ -249,10 +209,11 @@ public class UserService {
      * @param response Map to collect validation error messages
      * @return true if user data is unique, false otherwise
      */
-    public boolean hasNotUniqueData(User user, Map<String, String> response) {
+    private boolean hasNotUniqueData(User user, Map<String, String> response) {
         if (user.getLogin() != null) {
-            User userFoundByLogin = iUserRepository.findByLogin(user.getLogin());
-            if (userFoundByLogin != null && !userFoundByLogin.getId().equals(user.getId())) {
+            Optional<User> userFoundByLoginOptional = iUserRepository.findByLogin(user.getLogin());
+
+            if (userFoundByLoginOptional.isPresent() && !userFoundByLoginOptional.get().getId().equals(user.getId())) {
                 response.put("error_login", "User with that login already exists");
                 log.warn("User with login '{}' already exists", user.getLogin());
                 return true;
@@ -260,8 +221,9 @@ public class UserService {
         }
 
         if (user.getEmail() != null) {
-            User userFoundByEmail = iUserRepository.findByEmail(user.getEmail());
-            if (userFoundByEmail != null && !userFoundByEmail.getId().equals(user.getId())) {
+            Optional<User> userFoundByEmailOptional = iUserRepository.findByEmail(user.getEmail());
+
+            if (userFoundByEmailOptional.isPresent() && !userFoundByEmailOptional.get().getId().equals(user.getId())) {
                 response.put("error_email", "User with that email already exists");
                 log.warn("User with email '{}' already exists", user.getEmail());
                 return true;
@@ -269,8 +231,10 @@ public class UserService {
         }
 
         if (user.getPhoneNumber() != null) {
-            User userFoundByPhoneNumber = iUserRepository.findByPhoneNumber(user.getPhoneNumber());
-            if (userFoundByPhoneNumber != null && !userFoundByPhoneNumber.getId().equals(user.getId())) {
+            Optional<User> userFoundByPhoneNumberOptional = iUserRepository.findByPhoneNumber(user.getPhoneNumber());
+
+            if (userFoundByPhoneNumberOptional.isPresent() && !userFoundByPhoneNumberOptional.get().getId()
+                    .equals(user.getId())) {
                 response.put("error_phone_number", "User with that phone number already exists");
                 log.warn("User with phone number '{}' already exists", user.getPhoneNumber());
                 return true;
@@ -287,7 +251,7 @@ public class UserService {
      * @param response Map to collect validation error messages
      * @return true if user is valid for creation, false otherwise
      */
-    public boolean isNotValidNewUser(User user, Map<String, String> response) {
+    private boolean isNotValidNewUser(User user, Map<String, String> response) {
         if (StringUtils.isBlank(user.getLogin())) {
             response.put("error_login", "The login must not be empty");
             log.warn("The login must not be empty");

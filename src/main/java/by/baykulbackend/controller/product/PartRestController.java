@@ -1,10 +1,12 @@
-package by.baykulbackend.controller.user;
+package by.baykulbackend.controller.product;
 
-import by.baykulbackend.database.dao.user.User;
+import by.baykulbackend.database.dao.product.Part;
+import by.baykulbackend.database.dto.product.ProductDto;
 import by.baykulbackend.database.dto.security.Views;
-import by.baykulbackend.database.repository.user.IUserRepository;
+import by.baykulbackend.database.repository.product.IPartRepository;
 import by.baykulbackend.exceptions.NotFoundException;
-import by.baykulbackend.services.user.UserService;
+import by.baykulbackend.services.product.PartService;
+import by.baykulbackend.services.product.ProductCsvService;
 import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,70 +29,58 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/product")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "API for user registration and management")
-public class UserRestController {
-    private final IUserRepository iUserRepository;
-    private final UserService userService;
+@Tag(name = "Product Management", description = "API for spare part management operations")
+public class PartRestController {
+    private final ProductCsvService productCsvService;
+    private final IPartRepository iPartRepository;
+    private final PartService partService;
 
     @Operation(
-            summary = "Get all users",
-            description = "Retrieves all users from the system with their refresh tokens. Requires users:write permission.",
+            summary = "Get all parts",
+            description = "Retrieves all spare parts from the system. Requires users:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "List of users retrieved successfully",
+                    description = "List of parts retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            array = @ArraySchema(schema = @Schema(implementation = Views.PartView.Get.class)),
                             examples = @ExampleObject(
-                                    name = "All users response example",
-                                    summary = "List of all users",
+                                    name = "All parts response example",
+                                    summary = "List of all spare parts",
                                     value = """
                                             [
                                               {
                                                 "id": "123e4567-e89b-12d3-a456-426614174001",
                                                 "createdTs": "2024-01-15T10:30:00",
                                                 "updatedTs": "2024-01-20T14:45:30",
-                                                "login": "john_doe",
-                                                "email": "john.doe@example.com",
-                                                "phoneNumber": "+375291234567",
-                                                "role": "USER",
-                                                "blocked": false,
-                                                "refreshTokens": [
-                                                  {
-                                                    "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                    "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                                                    "ipAddress": "192.168.1.100"
-                                                  }
-                                                ],
-                                                "profile": {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
-                                                  "surname": "Doe",
-                                                  "name": "John",
-                                                  "patronymic": "Michael"
-                                                }
+                                                "article": "2405947",
+                                                "name": "Engine Oil LL01 5W30",
+                                                "weight": 150.4,
+                                                "minCount": 3,
+                                                "storageCount": 5,
+                                                "returnPart": 3.01,
+                                                "price": 7862.43,
+                                                "currency": "EUR",
+                                                "brand": "rolls royce"
                                               },
                                               {
                                                 "id": "123e4567-e89b-12d3-a456-426614174002",
                                                 "createdTs": "2024-01-16T09:15:00",
                                                 "updatedTs": "2024-01-19T11:20:00",
-                                                "login": "jane_smith",
-                                                "email": "jane.smith@example.com",
-                                                "phoneNumber": "+375292345678",
-                                                "role": "ADMIN",
-                                                "blocked": false,
-                                                "refreshTokens": [],
-                                                "profile": {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174011",
-                                                  "surname": "Smith",
-                                                  "name": "Jane",
-                                                  "patronymic": "Ann"
-                                                }
+                                                "article": "2405948",
+                                                "name": "Air Filter",
+                                                "weight": 0.5,
+                                                "minCount": 1,
+                                                "storageCount": 10,
+                                                "returnPart": 0.00,
+                                                "price": 450.00,
+                                                "currency": "EUR",
+                                                "brand": "BMW"
                                               }
                                             ]
                                             """
@@ -130,52 +120,42 @@ public class UserRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:write')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
+    @PreAuthorize("hasAnyAuthority('users:read')")
     @GetMapping
-    public List<User> getAll() {
-        return iUserRepository.findAll();
+    @JsonView(Views.PartView.Get.class)
+    public List<Part> getAll() {
+        return iPartRepository.findAll();
     }
 
     @Operation(
-            summary = "Get user by ID",
-            description = "Retrieves a specific user by UUID with their refresh tokens. Requires users:read permission.",
+            summary = "Get part by ID",
+            description = "Retrieves a specific spare part by UUID. Requires users:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User retrieved successfully",
+                    description = "Part retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            schema = @Schema(implementation = Views.PartView.Get.class),
                             examples = @ExampleObject(
-                                    name = "Single user response example",
-                                    summary = "User details",
+                                    name = "Single part response example",
+                                    summary = "Part details",
                                     value = """
                                             {
                                               "id": "123e4567-e89b-12d3-a456-426614174001",
                                               "createdTs": "2024-01-15T10:30:00",
                                               "updatedTs": "2024-01-20T14:45:30",
-                                              "login": "john_doe",
-                                              "email": "john.doe@example.com",
-                                              "phoneNumber": "+375291234567",
-                                              "role": "USER",
-                                              "blocked": false,
-                                              "refreshTokens": [
-                                                {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                  "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                                                  "ipAddress": "192.168.1.100"
-                                                }
-                                              ],
-                                              "profile": {
-                                                "id": "123e4567-e89b-12d3-a456-426614174010",
-                                                "surname": "Doe",
-                                                "name": "John",
-                                                "patronymic": "Michael"
-                                              }
+                                              "article": "2405947",
+                                              "name": "Engine Oil LL01 5W30",
+                                              "weight": 150.4,
+                                              "minCount": 3,
+                                              "storageCount": 5,
+                                              "returnPart": 3.01,
+                                              "price": 7862.43,
+                                              "currency": "EUR",
+                                              "brand": "rolls royce"
                                             }
                                             """
                             )
@@ -215,14 +195,14 @@ public class UserRestController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found",
+                    description = "Part not found",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     name = "Not found example",
                                     value = """
                                             {
-                                              "error": "User not found",
+                                              "error": "Part not found",
                                             }
                                             """
                             )
@@ -230,38 +210,41 @@ public class UserRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:read')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
     @GetMapping("/{id}")
-    public User getOne(
+    @JsonView(Views.PartView.Get.class)
+    public Part getOne(
             @Parameter(
-                    description = "UUID of the user to retrieve",
+                    description = "UUID of the part to retrieve",
                     required = true,
                     example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @PathVariable UUID id) {
-        return iUserRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+        return iPartRepository.findById(id).orElseThrow(() -> new NotFoundException("Part not found"));
     }
 
     @Operation(
-            summary = "Create new user",
-            description = "Creates a new user in the system. Requires users:write permission.",
+            summary = "Create new part",
+            description = "Creates a new spare part in the system. Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User data to create",
+                    description = "Part data to create",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Post.class),
+                            schema = @Schema(implementation = Views.PartView.Post.class),
                             examples = @ExampleObject(
-                                    name = "Create user request example",
-                                    summary = "User creation request",
+                                    name = "Create part request example",
+                                    summary = "Part creation request",
                                     value = """
                                             {
-                                              "login": "new_user",
-                                              "password": "securePassword123",
-                                              "email": "new.user@example.com",
-                                              "phoneNumber": "+375292345678",
-                                              "role": "USER",
-                                              "blocked": false
+                                              "article": "2405947",
+                                              "name": "Engine Oil LL01 5W30",
+                                              "weight": 150.4,
+                                              "minCount": 3,
+                                              "storageCount": 5,
+                                              "returnPart": 3.01,
+                                              "price": 7862.43,
+                                              "currency": "EUR",
+                                              "brand": "rolls royce"
                                             }
                                             """
                             )
@@ -271,15 +254,15 @@ public class UserRestController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User created successfully",
+                    description = "Part created successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Create user success example",
-                                    summary = "User created successfully",
+                                    name = "Create part success example",
+                                    summary = "Part created successfully",
                                     value = """
                                             {
-                                              "create_user": "true",
+                                              "create_part": "true",
                                               "id": "123e4567-e89b-12d3-a456-426614174003"
                                             }
                                             """
@@ -288,7 +271,7 @@ public class UserRestController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Bad request - invalid user data",
+                    description = "Bad request - invalid part data",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
@@ -296,8 +279,9 @@ public class UserRestController {
                                     summary = "Validation errors",
                                     value = """
                                             {
-                                              "error_login": "The login must not be empty",
-                                              "error_password": "The password must not be empty"
+                                              "error_article": "The article must not be empty",
+                                              "error_name": "The name must not be empty",
+                                              "error_brand": "The brand must not be empty"
                                             }
                                             """
                             )
@@ -337,16 +321,15 @@ public class UserRestController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "Conflict - user with same login/email/phone already exists",
+                    description = "Conflict - part with same article already exists",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     name = "Conflict example",
-                                    summary = "Duplicate user data",
+                                    summary = "Duplicate part data",
                                     value = """
                                             {
-                                              "error_login": "User with that login already exists",
-                                              "error_email": "User with that email already exists"
+                                              "error_article": "Part with that article already exists"
                                             }
                                             """
                             )
@@ -355,28 +338,27 @@ public class UserRestController {
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody @JsonView(Views.UserView.Post.class) User user) {
-        return userService.createUser(user);
+    public ResponseEntity<?> create(@RequestBody @JsonView(Views.PartView.Post.class) Part part) {
+        return partService.createPart(part);
     }
 
     @Operation(
-            summary = "Register new user",
-            description = "Registers a new user in the system. No authentication required. Returns validation errors if registration fails.",
+            summary = "Upload parts from CSV file",
+            description = "Uploads and parses multiple spare parts from a CSV file. File must be in UTF-8 encoding with semicolon (;) separator. Requires users:write permission.",
+            security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User registration data",
+                    description = "CSV file containing parts data",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Post.class),
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            schema = @Schema(implementation = ProductDto.class),
                             examples = @ExampleObject(
-                                    name = "Registration request example",
-                                    summary = "User registration request",
+                                    name = "CSV upload request example",
+                                    summary = "CSV file upload",
                                     value = """
-                                            {
-                                              "login": "new_user",
-                                              "password": "securePassword123",
-                                              "email": "new.user@example.com",
-                                              "phoneNumber": "+375292345678"
-                                            }
+                                            The CSV file should have the following format:
+                                            Header: article;name;weight;min_count;storage_count;return_part;price;brand
+                                            Example row: 2405947;Engine Oil LL01 5W30;150.4;3;5;3.01;7862.43;rolls royce
                                             """
                             )
                     )
@@ -385,16 +367,15 @@ public class UserRestController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User registered successfully",
+                    description = "CSV file parsed and parts created successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Registration success example",
-                                    summary = "User registered successfully",
+                                    name = "Upload success example",
+                                    summary = "Upload successful",
                                     value = """
                                             {
-                                              "registration_user": "true",
-                                              "id": "123e4567-e89b-12d3-a456-426614174003"
+                                              "parsed": "true"
                                             }
                                             """
                             )
@@ -402,63 +383,91 @@ public class UserRestController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Bad request - validation errors",
+                    description = "Bad request - invalid CSV format or data",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Registration validation error example",
-                                    summary = "Registration validation errors",
+                                    name = "CSV validation error example",
+                                    summary = "CSV parsing errors",
                                     value = """
                                             {
-                                              "error_login": "The login must not be empty",
-                                              "error_data": "One of the following must be filled in: email, phone number"
+                                              "error": "Error while parsing csv file",
+                                              "error_row_2": "Incorrect number of columns",
+                                              "error_row_3": "Duplicate article 2405947",
+                                              "error_row_4": "Incorrect name size"
                                             }
                                             """
                             )
                     )
             ),
             @ApiResponse(
-                    responseCode = "409",
-                    description = "Conflict - user with same login/email/phone already exists",
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Registration conflict example",
-                                    summary = "Duplicate registration data",
+                                    name = "Unauthorized example",
                                     value = """
                                             {
-                                              "error_login": "User with that login already exists",
-                                              "error_phone_number": "User with that phone number already exists"
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
                                             }
                                             """
                             )
                     )
             )
     })
-    @PostMapping("/registration")
-    public ResponseEntity<?> registration(@RequestBody @JsonView(Views.UserView.Post.class) User user) {
-        return userService.registerUser(user);
+    @PreAuthorize("hasAnyAuthority('users:write')")
+    @PostMapping(value = "/upload", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<?> uploadParts(
+            @Parameter(
+                    description = "CSV file with parts data",
+                    required = true
+            )
+            ProductDto productDto) {
+        return productCsvService.parseParts(productDto);
     }
 
     @Operation(
-            summary = "Update user",
-            description = "Updates an existing user's information. Only non-null fields are updated. Requires users:read permission.",
+            summary = "Update part",
+            description = "Updates an existing part's information. Only non-null fields are updated. Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User data to update",
+                    description = "Part data to update",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Put.class),
+                            schema = @Schema(implementation = Views.PartView.Put.class),
                             examples = @ExampleObject(
-                                    name = "Update user request example",
-                                    summary = "User update request",
+                                    name = "Update part request example",
+                                    summary = "Part update request",
                                     value = """
                                             {
-                                              "login": "updated_login",
-                                              "email": "updated.email@example.com",
-                                              "phoneNumber": "+375293456789",
-                                              "password": "newSecurePassword456",
-                                              "blocked": false
+                                              "article": "2405948",
+                                              "name": "Updated Engine Oil",
+                                              "weight": 155.0,
+                                              "minCount": 4,
+                                              "storageCount": 8,
+                                              "returnPart": 4.01,
+                                              "price": 8000.00,
+                                              "currency": "USD",
+                                              "brand": "Updated Brand"
                                             }
                                             """
                             )
@@ -468,15 +477,15 @@ public class UserRestController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User updated successfully",
+                    description = "Part updated successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Update user success example",
-                                    summary = "User updated successfully",
+                                    name = "Update part success example",
+                                    summary = "Part updated successfully",
                                     value = """
                                             {
-                                              "update_user": "true"
+                                              "update_part": "true"
                                             }
                                             """
                             )
@@ -516,15 +525,15 @@ public class UserRestController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found",
+                    description = "Part not found",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     name = "Not found example",
                                     value = """
                                             {
-                                              "error": "User not found",
-                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
+                                              "error": "Part not found",
+                                              "message": "Part with id 123e4567-e89b-12d3-a456-426614174001 not found"
                                             }
                                             """
                             )
@@ -532,16 +541,15 @@ public class UserRestController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "Conflict - user with same login/email/phone already exists",
+                    description = "Conflict - part with same article already exists",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     name = "Conflict example",
-                                    summary = "Duplicate user data",
+                                    summary = "Duplicate part data",
                                     value = """
                                             {
-                                              "error_login": "User with that login already exists",
-                                              "error_email": "User with that email already exists"
+                                              "error_article": "Part with that article already exists"
                                             }
                                             """
                             )
@@ -549,36 +557,36 @@ public class UserRestController {
             )
     })
     @Transactional
-    @PreAuthorize("hasAnyAuthority('users:read')")
+    @PreAuthorize("hasAnyAuthority('users:write')")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
             @Parameter(
-                    description = "UUID of the user to update",
+                    description = "UUID of the part to update",
                     required = true,
                     example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @PathVariable UUID id,
-            @RequestBody @JsonView(Views.UserView.Put.class) User user) {
-        return userService.updateUser(id, user);
+            @RequestBody @JsonView(Views.PartView.Put.class) Part part) {
+        return partService.updatePart(id, part);
     }
 
     @Operation(
-            summary = "Delete user",
-            description = "Deletes a user by ID. Requires users:write permission.",
+            summary = "Delete part",
+            description = "Deletes a part by ID. Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User deleted successfully",
+                    description = "Part deleted successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Delete user success example",
-                                    summary = "User deleted successfully",
+                                    name = "Delete part success example",
+                                    summary = "Part deleted successfully",
                                     value = """
                                             {
-                                              "delete_user": "true"
+                                              "delete_part": "true"
                                             }
                                             """
                             )
@@ -618,15 +626,15 @@ public class UserRestController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found",
+                    description = "Part not found",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     name = "Not found example",
                                     value = """
                                             {
-                                              "error": "User not found",
-                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
+                                              "error": "Part not found",
+                                              "message": "Part with id 123e4567-e89b-12d3-a456-426614174001 not found"
                                             }
                                             """
                             )
@@ -637,11 +645,11 @@ public class UserRestController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(
             @Parameter(
-                    description = "UUID of the user to delete",
+                    description = "UUID of the part to delete",
                     required = true,
                     example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @PathVariable UUID id) {
-        return userService.deleteUserById(id);
+        return partService.deletePartById(id);
     }
 }

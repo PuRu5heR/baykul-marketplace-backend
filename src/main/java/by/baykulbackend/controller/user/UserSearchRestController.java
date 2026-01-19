@@ -16,39 +16,40 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/users/search")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "API for user registration and management")
-public class UserRestController {
+@Tag(name = "User Search", description = "API for user search operations")
+public class UserSearchRestController {
     private final IUserRepository iUserRepository;
     private final UserService userService;
 
     @Operation(
-            summary = "Get all users",
-            description = "Retrieves all users from the system with their refresh tokens. Requires users:write permission.",
+            summary = "Search users",
+            description = "Searches users by login, email, or phone number containing the specified text. " +
+                    "Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "List of users retrieved successfully",
+                    description = "Search results retrieved successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
                             examples = @ExampleObject(
-                                    name = "All users response example",
-                                    summary = "List of all users",
+                                    name = "Search results example",
+                                    summary = "Search results",
                                     value = """
                                             [
                                               {
@@ -60,36 +61,12 @@ public class UserRestController {
                                                 "phoneNumber": "+375291234567",
                                                 "role": "USER",
                                                 "blocked": false,
-                                                "refreshTokens": [
-                                                  {
-                                                    "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                    "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                                                    "ipAddress": "192.168.1.100"
-                                                  }
-                                                ],
+                                                "refreshTokens": [],
                                                 "profile": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174010",
                                                   "surname": "Doe",
                                                   "name": "John",
                                                   "patronymic": "Michael"
-                                                }
-                                              },
-                                              {
-                                                "id": "123e4567-e89b-12d3-a456-426614174002",
-                                                "createdTs": "2024-01-16T09:15:00",
-                                                "updatedTs": "2024-01-19T11:20:00",
-                                                "login": "jane_smith",
-                                                "email": "jane.smith@example.com",
-                                                "phoneNumber": "+375292345678",
-                                                "role": "ADMIN",
-                                                "blocked": false,
-                                                "refreshTokens": [],
-                                                "profile": {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174011",
-                                                  "surname": "Smith",
-                                                  "name": "Jane",
-                                                  "patronymic": "Ann"
                                                 }
                                               }
                                             ]
@@ -132,14 +109,21 @@ public class UserRestController {
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
     @JsonView(Views.UserWithRefreshTokenView.class)
-    @GetMapping
-    public List<User> getAll() {
-        return iUserRepository.findAll();
+    @GetMapping("/search/{text}")
+    public List<User> search(
+            @Parameter(
+                    description = "Text to search for in login, email, or phone number",
+                    required = true,
+                    example = "john"
+            )
+            @PathVariable String text) {
+        return userService.searchUser(text);
     }
 
     @Operation(
-            summary = "Get user by ID",
-            description = "Retrieves a specific user by UUID with their refresh tokens. Requires users:read permission.",
+            summary = "Get user by login",
+            description = "Retrieves a specific user by exact login with their refresh tokens. " +
+                    "Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -157,7 +141,7 @@ public class UserRestController {
                                               "id": "123e4567-e89b-12d3-a456-426614174001",
                                               "createdTs": "2024-01-15T10:30:00",
                                               "updatedTs": "2024-01-20T14:45:30",
-                                              "login": "john_doe",
+                                              "login": "john",
                                               "email": "john.doe@example.com",
                                               "phoneNumber": "+375291234567",
                                               "role": "USER",
@@ -229,356 +213,145 @@ public class UserRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:read')")
-    @JsonView(Views.UserWithRefreshTokenView.class)
-    @GetMapping("/{id}")
-    public User getOne(
-            @Parameter(
-                    description = "UUID of the user to retrieve",
-                    required = true,
-                    example = "123e4567-e89b-12d3-a456-426614174001"
-            )
-            @PathVariable UUID id) {
-        return iUserRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
-    }
-
-    @Operation(
-            summary = "Create new user",
-            description = "Creates a new user in the system. Requires users:write permission.",
-            security = @SecurityRequirement(name = "bearerAuth"),
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User data to create",
-                    required = true,
-                    content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Post.class),
-                            examples = @ExampleObject(
-                                    name = "Create user request example",
-                                    summary = "User creation request",
-                                    value = """
-                                            {
-                                              "login": "new_user",
-                                              "password": "securePassword123",
-                                              "email": "new.user@example.com",
-                                              "phoneNumber": "+375292345678",
-                                              "role": "USER",
-                                              "blocked": false
-                                            }
-                                            """
-                            )
-                    )
-            )
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User created successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Create user success example",
-                                    summary = "User created successfully",
-                                    value = """
-                                            {
-                                              "create_user": "true",
-                                              "id": "123e4567-e89b-12d3-a456-426614174003"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Bad request - invalid user data",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Validation error example",
-                                    summary = "Validation errors",
-                                    value = """
-                                            {
-                                              "error_login": "The login must not be empty",
-                                              "error_password": "The password must not be empty"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Unauthorized example",
-                                    value = """
-                                            {
-                                              "error": "Unauthorized",
-                                              "message": "Full authentication is required to access this resource"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Forbidden - insufficient permissions",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Forbidden example",
-                                    value = """
-                                            {
-                                              "error": "Forbidden",
-                                              "message": "Access Denied"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "Conflict - user with same login/email/phone already exists",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Conflict example",
-                                    summary = "Duplicate user data",
-                                    value = """
-                                            {
-                                              "error_login": "User with that login already exists",
-                                              "error_email": "User with that email already exists"
-                                            }
-                                            """
-                            )
-                    )
-            )
-    })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @PostMapping
-    public ResponseEntity<?> create(@RequestBody @JsonView(Views.UserView.Post.class) User user) {
-        return userService.createUser(user);
-    }
-
-    @Operation(
-            summary = "Register new user",
-            description = "Registers a new user in the system. No authentication required. Returns validation errors if registration fails.",
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User registration data",
-                    required = true,
-                    content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Post.class),
-                            examples = @ExampleObject(
-                                    name = "Registration request example",
-                                    summary = "User registration request",
-                                    value = """
-                                            {
-                                              "login": "new_user",
-                                              "password": "securePassword123",
-                                              "email": "new.user@example.com",
-                                              "phoneNumber": "+375292345678"
-                                            }
-                                            """
-                            )
-                    )
-            )
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User registered successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Registration success example",
-                                    summary = "User registered successfully",
-                                    value = """
-                                            {
-                                              "registration_user": "true",
-                                              "id": "123e4567-e89b-12d3-a456-426614174003"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Bad request - validation errors",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Registration validation error example",
-                                    summary = "Registration validation errors",
-                                    value = """
-                                            {
-                                              "error_login": "The login must not be empty",
-                                              "error_data": "One of the following must be filled in: email, phone number"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "Conflict - user with same login/email/phone already exists",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Registration conflict example",
-                                    summary = "Duplicate registration data",
-                                    value = """
-                                            {
-                                              "error_login": "User with that login already exists",
-                                              "error_phone_number": "User with that phone number already exists"
-                                            }
-                                            """
-                            )
-                    )
-            )
-    })
-    @PostMapping("/registration")
-    public ResponseEntity<?> registration(@RequestBody @JsonView(Views.UserView.Post.class) User user) {
-        return userService.registerUser(user);
-    }
-
-    @Operation(
-            summary = "Update user",
-            description = "Updates an existing user's information. Only non-null fields are updated. Requires users:read permission.",
-            security = @SecurityRequirement(name = "bearerAuth"),
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User data to update",
-                    required = true,
-                    content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Put.class),
-                            examples = @ExampleObject(
-                                    name = "Update user request example",
-                                    summary = "User update request",
-                                    value = """
-                                            {
-                                              "login": "updated_login",
-                                              "email": "updated.email@example.com",
-                                              "phoneNumber": "+375293456789",
-                                              "password": "newSecurePassword456",
-                                              "blocked": false
-                                            }
-                                            """
-                            )
-                    )
-            )
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User updated successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Update user success example",
-                                    summary = "User updated successfully",
-                                    value = """
-                                            {
-                                              "update_user": "true"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Unauthorized example",
-                                    value = """
-                                            {
-                                              "error": "Unauthorized",
-                                              "message": "Full authentication is required to access this resource"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Forbidden - insufficient permissions",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Forbidden example",
-                                    value = """
-                                            {
-                                              "error": "Forbidden",
-                                              "message": "Access Denied"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "User not found",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Not found example",
-                                    value = """
-                                            {
-                                              "error": "User not found",
-                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "Conflict - user with same login/email/phone already exists",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Conflict example",
-                                    summary = "Duplicate user data",
-                                    value = """
-                                            {
-                                              "error_login": "User with that login already exists",
-                                              "error_email": "User with that email already exists"
-                                            }
-                                            """
-                            )
-                    )
-            )
-    })
-    @Transactional
-    @PreAuthorize("hasAnyAuthority('users:read')")
-    @PutMapping("/{id}")
-    public ResponseEntity<?> update(
+    @JsonView(Views.UserWithRefreshTokenView.class)
+    @GetMapping("/exact/login/{login}")
+    public User getByLogin(
             @Parameter(
-                    description = "UUID of the user to update",
+                    description = "Login text to search for",
                     required = true,
-                    example = "123e4567-e89b-12d3-a456-426614174001"
+                    example = "john"
             )
-            @PathVariable UUID id,
-            @RequestBody @JsonView(Views.UserView.Put.class) User user) {
-        return userService.updateUser(id, user);
+            @PathVariable String login) {
+        return iUserRepository.findByLogin(login).orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     @Operation(
-            summary = "Delete user",
-            description = "Deletes a user by ID. Requires users:write permission.",
+            summary = "Search users by login",
+            description = "Searches users by login containing the specified text (case-insensitive). " +
+                    "Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User deleted successfully",
+                    description = "Search results retrieved successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "Search by login results example",
+                                    summary = "Search by login results",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Delete user success example",
-                                    summary = "User deleted successfully",
+                                    name = "Unauthorized example",
                                     value = """
                                             {
-                                              "delete_user": "true"
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PreAuthorize("hasAnyAuthority('users:write')")
+    @JsonView(Views.UserWithRefreshTokenView.class)
+    @GetMapping("/search/login/{login}")
+    public List<User> searchByLogin(
+            @Parameter(
+                    description = "Login text to search for (case-insensitive)",
+                    required = true,
+                    example = "john"
+            )
+            @PathVariable String login) {
+        return iUserRepository.findByLoginContainingIgnoreCase(login);
+    }
+
+    @Operation(
+            summary = "Get user by email",
+            description = "Retrieves a specific user by exact email with their refresh tokens. " +
+                    "Requires users:write permission.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User retrieved successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            examples = @ExampleObject(
+                                    name = "Single user response example",
+                                    summary = "User details",
+                                    value = """
+                                            {
+                                              "id": "123e4567-e89b-12d3-a456-426614174001",
+                                              "createdTs": "2024-01-15T10:30:00",
+                                              "updatedTs": "2024-01-20T14:45:30",
+                                              "login": "john",
+                                              "email": "john.doe@example.com",
+                                              "phoneNumber": "+375291234567",
+                                              "role": "USER",
+                                              "blocked": false,
+                                              "refreshTokens": [
+                                                {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
+                                                  "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                                  "ipAddress": "192.168.1.100"
+                                                }
+                                              ],
+                                              "profile": {
+                                                "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                "surname": "Doe",
+                                                "name": "John",
+                                                "patronymic": "Michael"
+                                              }
                                             }
                                             """
                             )
@@ -626,7 +399,6 @@ public class UserRestController {
                                     value = """
                                             {
                                               "error": "User not found",
-                                              "message": "User with id 123e4567-e89b-12d3-a456-426614174001 not found"
                                             }
                                             """
                             )
@@ -634,14 +406,293 @@ public class UserRestController {
             )
     })
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(
+    @JsonView(Views.UserWithRefreshTokenView.class)
+    @GetMapping("/exact/email/{email}")
+    public User getByEmail(
             @Parameter(
-                    description = "UUID of the user to delete",
+                    description = "Email text to search for",
                     required = true,
-                    example = "123e4567-e89b-12d3-a456-426614174001"
+                    example = "john.doe@example.com"
             )
-            @PathVariable UUID id) {
-        return userService.deleteUserById(id);
+            @PathVariable String email) {
+        return iUserRepository.findByEmail(email).orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    @Operation(
+            summary = "Search users by email",
+            description = "Searches users by email containing the specified text (case-insensitive). " +
+                    "Requires users:write permission.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Search results retrieved successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "Search by email results example",
+                                    summary = "Search by email results",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PreAuthorize("hasAnyAuthority('users:write')")
+    @JsonView(Views.UserWithRefreshTokenView.class)
+    @GetMapping("/search/email/{email}")
+    public List<User> searchByEmail(
+            @Parameter(
+                    description = "Email text to search for (case-insensitive)",
+                    required = true,
+                    example = "example.com"
+            )
+            @PathVariable String email) {
+        return iUserRepository.findByEmailContainingIgnoreCase(email);
+    }
+
+    @Operation(
+            summary = "Get user by phone number",
+            description = "Retrieves a specific user by exact phone number with their refresh tokens. " +
+                    "Requires users:write permission.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User retrieved successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Views.UserWithRefreshTokenView.class),
+                            examples = @ExampleObject(
+                                    name = "Single user response example",
+                                    summary = "User details",
+                                    value = """
+                                            {
+                                              "id": "123e4567-e89b-12d3-a456-426614174001",
+                                              "createdTs": "2024-01-15T10:30:00",
+                                              "updatedTs": "2024-01-20T14:45:30",
+                                              "login": "john",
+                                              "email": "john.doe@example.com",
+                                              "phoneNumber": "+375291234567",
+                                              "role": "USER",
+                                              "blocked": false,
+                                              "refreshTokens": [
+                                                {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174000",
+                                                  "name": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                                  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                                                  "ipAddress": "192.168.1.100"
+                                                }
+                                              ],
+                                              "profile": {
+                                                "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                "surname": "Doe",
+                                                "name": "John",
+                                                "patronymic": "Michael"
+                                              }
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "User not found",
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PreAuthorize("hasAnyAuthority('users:write')")
+    @JsonView(Views.UserWithRefreshTokenView.class)
+    @GetMapping("/exact/phoneNumber/{phoneNumber}")
+    public User getByPhoneNumber(
+            @Parameter(
+                    description = "Phone number text to search for",
+                    required = true,
+                    example = "+375291234567"
+            )
+            @PathVariable String phoneNumber) {
+        return iUserRepository.findByPhoneNumber(phoneNumber).orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    @Operation(
+            summary = "Search users by phone number",
+            description = "Searches users by phone number containing the specified text. " +
+                    "Requires users:write permission.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Search results retrieved successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = Views.UserWithRefreshTokenView.class)),
+                            examples = @ExampleObject(
+                                    name = "Search by phone results example",
+                                    summary = "Search by phone results",
+                                    value = """
+                                            [
+                                              {
+                                                "id": "123e4567-e89b-12d3-a456-426614174001",
+                                                "createdTs": "2024-01-15T10:30:00",
+                                                "updatedTs": "2024-01-20T14:45:30",
+                                                "login": "john_doe",
+                                                "email": "john.doe@example.com",
+                                                "phoneNumber": "+375291234567",
+                                                "role": "USER",
+                                                "blocked": false,
+                                                "refreshTokens": [],
+                                                "profile": {
+                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
+                                                  "surname": "Doe",
+                                                  "name": "John",
+                                                  "patronymic": "Michael"
+                                                }
+                                              }
+                                            ]
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PreAuthorize("hasAnyAuthority('users:write')")
+    @JsonView(Views.UserWithRefreshTokenView.class)
+    @GetMapping("/search/phoneNumber/{phoneNumber}")
+    public List<User> searchByPhoneNumber(
+            @Parameter(
+                    description = "Phone number text to search for",
+                    required = true,
+                    example = "291234567"
+            )
+            @PathVariable String phoneNumber) {
+        return iUserRepository.findByPhoneNumberContaining(phoneNumber);
     }
 }

@@ -25,6 +25,12 @@ public class Views {
         interface Put {}
     }
 
+    public interface PartView {
+        interface Get {}
+        interface Post {}
+        interface Put {}
+    }
+
     public interface UserWithRefreshTokenView extends UserView.Get, RefreshTokenView.Get {}
 
     public interface BalanceWithUserView extends BalanceView.Get, UserView.Get {}

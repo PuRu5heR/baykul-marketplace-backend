@@ -31,7 +31,8 @@ public class RefreshTokenService {
      * @return List of RefreshToken objects belonging to the current user
      */
     public List<RefreshToken> findUserRefreshTokens() {
-        User userFromDB = iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString());
+        User userFromDB = iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString())
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         return iRefreshTokenRepository.findRefreshTokenByUser(userFromDB);
     }
@@ -61,7 +62,8 @@ public class RefreshTokenService {
         Map<String, String> response = new HashMap<>();
         RefreshToken refreshTokenFromDB = iRefreshTokenRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Refresh token not found"));
-        User userFromDB = iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString());
+        User userFromDB = iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString())
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (userFromDB.equals(refreshTokenFromDB.getUser()) || userFromDB.getRole().equals(Role.ADMIN)) {
             iRefreshTokenRepository.deleteById(id);
@@ -90,7 +92,8 @@ public class RefreshTokenService {
 
         RefreshToken refreshTokenFromDB = Optional.ofNullable(iRefreshTokenRepository.findRefreshTokenByName(refreshToken))
                 .orElseThrow(() -> new NotFoundException("Refresh token not found"));
-        User userFromDB = iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString());
+        User userFromDB = iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString())
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (userFromDB.equals(refreshTokenFromDB.getUser()) || userFromDB.getRole().equals(Role.ADMIN)) {
             iRefreshTokenRepository.deleteById(refreshTokenFromDB.getId());
