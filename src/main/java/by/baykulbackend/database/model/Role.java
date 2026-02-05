@@ -8,7 +8,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
-@Schema(description = "Role enum defining user roles and their associated permissions")
+@Schema(description = """
+                      User role in the system. Defines permissions and access levels.
+                      
+                      **Available roles:**
+                      
+                      - **USER** - Standard user with permissions: users:read, balances:read, products:read, carts:read
+                      - **MANAGER** - Manager with permissions: users:read, balances:read/write, products:read/write
+                      - **ADMIN** - Full system access
+                      """,
+        enumAsRef = true
+)
 public enum Role {
     USER(Set.of(Permission.USERS_READ, Permission.BALANCE_READ, Permission.PRODUCT_READ, Permission.CART_READ)),
     MANAGER(Set.of(Permission.USERS_READ, Permission.BALANCE_READ, Permission.BALANCE_WRITE,

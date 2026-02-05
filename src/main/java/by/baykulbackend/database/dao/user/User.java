@@ -103,16 +103,6 @@ public class User {
     private String phoneNumber;
 
     @Schema(
-            description = """
-                          User role in the system. Defines permissions and access levels.
-                        
-                          **Available roles:**
-                        
-                          - **USER** - Standard user with permissions: users:read, balances:read, products:read, carts:read
-                          - **MANAGER** - Manager with permissions: users:read, balances:read/write, products:read/write
-                          - **ADMIN** - Full system access
-                          """,
-            requiredMode = Schema.RequiredMode.REQUIRED,
             defaultValue = "USER",
             example = "USER"
     )
