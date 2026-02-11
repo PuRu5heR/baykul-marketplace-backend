@@ -13,7 +13,9 @@ public enum Permission {
     BALANCE_READ("balances:read"),
     BALANCE_WRITE("balances:write"),
     CART_READ("carts:read"),
-    CART_WRITE("carts:write");
+    CART_WRITE("carts:write"),
+    ORDER_READ("orders:read"),
+    ORDER_WRITE("orders:write");
 
     private final String permission;
 

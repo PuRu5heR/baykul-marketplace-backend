@@ -13,18 +13,20 @@ import java.util.stream.Collectors;
                       
                       **Available roles:**
                       
-                      - **USER** - Standard user with permissions: users:read, balances:read, products:read, carts:read
-                      - **MANAGER** - Manager with permissions: users:read, balances:read/write, products:read/write
+                      - **USER** - Standard user with permissions: users:read, balances:read, products:read, carts:read, orders:read
+                      - **MANAGER** - Manager with permissions: users:read, balances:read/write, products:read/write, orders:read/write
                       - **ADMIN** - Full system access
                       """,
         enumAsRef = true
 )
 public enum Role {
-    USER(Set.of(Permission.USERS_READ, Permission.BALANCE_READ, Permission.PRODUCT_READ, Permission.CART_READ)),
+    USER(Set.of(Permission.USERS_READ, Permission.BALANCE_READ, Permission.PRODUCT_READ, Permission.CART_READ,
+            Permission.ORDER_READ)),
     MANAGER(Set.of(Permission.USERS_READ, Permission.BALANCE_READ, Permission.BALANCE_WRITE,
-            Permission.PRODUCT_READ, Permission.PRODUCT_WRITE)),
+            Permission.PRODUCT_READ, Permission.PRODUCT_WRITE, Permission.ORDER_READ, Permission.ORDER_WRITE)),
     ADMIN(Set.of(Permission.USERS_READ, Permission.USERS_WRITE, Permission.BALANCE_READ, Permission.BALANCE_WRITE,
-            Permission.PRODUCT_READ, Permission.PRODUCT_WRITE, Permission.CART_READ, Permission.CART_WRITE));
+            Permission.PRODUCT_READ, Permission.PRODUCT_WRITE, Permission.CART_READ, Permission.CART_WRITE,
+            Permission.ORDER_READ, Permission.ORDER_WRITE)),;
 
     private final Set<Permission> permissions;
 

@@ -62,5 +62,23 @@ public class Views {
     }
 
     public interface CartProductFullView extends CartProductView.Get, CartView.Get, PartView.Get {}
+
+    // Order views
+    public interface OrderView {
+        interface Get {}
+        interface Post {}
+        interface Put {}
+    }
+
+    public interface OrderFullView extends OrderView.Get, UserView.Get, OrderProductView.Get, PartView.Get {}
+
+    // Order product views
+    public interface OrderProductView {
+        interface Get {}
+        interface Post {}
+        interface Put {}
+    }
+
+    public interface OrderProductFullView extends OrderProductView.Get, OrderView.Get, PartView.Get {}
 }
 
