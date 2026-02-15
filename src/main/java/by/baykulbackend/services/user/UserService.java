@@ -69,7 +69,6 @@ public class UserService {
 
         iUserRepository.save(user);
         response.put("create_user", "true");
-        response.put("id", user.getId().toString());
         log.info("User {} has ben created.", user.getLogin());
 
         return ResponseEntity.ok(response);

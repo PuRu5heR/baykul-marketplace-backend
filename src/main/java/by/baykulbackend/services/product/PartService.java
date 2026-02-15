@@ -58,7 +58,6 @@ public class PartService {
 
         iPartRepository.save(part);
         response.put("create_part", "true");
-        response.put("id", part.getId().toString());
         log.info("Part {} has ben created. -> {}", part.getArticle(), authService.getAuthInfo().getPrincipal());
 
         return ResponseEntity.ok(response);

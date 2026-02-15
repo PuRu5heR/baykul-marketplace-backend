@@ -459,6 +459,6 @@ public class OrderRestController {
             )
             @PathVariable UUID id,
             @RequestBody OrderProduct orderProduct) {
-        return orderService.updateOrderProductStatus(id, orderProduct);
+        return orderService.updateOrderProduct(id, orderProduct);
     }
 }

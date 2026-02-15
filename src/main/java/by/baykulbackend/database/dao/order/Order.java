@@ -66,15 +66,15 @@ public class Order {
     private Long number;
 
     @Schema(
-            description = "Order status",
+            description = "Order orderStatus",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            example = "NEW",
-            allowableValues = {"NEW", "PROCESSING", "COMPLETED", "CANCELED"}
+            example = "CREATED",
+            allowableValues = {"CREATED", "PAID", "PROCESSING", "COMPLETED", "CANCELED"}
     )
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Put.class})
-    private Status status;
+    private OrderStatus status;
 
     @Schema(
             description = "User associated with this order",
