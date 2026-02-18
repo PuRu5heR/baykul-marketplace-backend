@@ -250,7 +250,6 @@ public class CartService {
             cartProduct.setPartsCount(1);
 
             response.put("add_cart", "true");
-            response.put("id", cartProduct.getId().toString());
             log.info("Added to cart with id {} part with id {} -> {}", cart.getId(), part.getId(),
                     authService.getAuthInfo().getPrincipal());
         }
@@ -280,7 +279,6 @@ public class CartService {
         if (user.getCart() != null) {
             response.put("create_cart", "false");
             response.put("warn", "Cart already exists");
-            response.put("id", user.getCart().getId().toString());
             log.warn("Cart for user with id {} already exists -> {}", user.getId(),
                     authService.getAuthInfo().getPrincipal());
             return true;
