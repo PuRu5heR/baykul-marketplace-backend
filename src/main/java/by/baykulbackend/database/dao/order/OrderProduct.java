@@ -1,5 +1,6 @@
 package by.baykulbackend.database.dao.order;
 
+import by.baykulbackend.database.dao.product.Currency;
 import by.baykulbackend.database.dao.product.Part;
 import by.baykulbackend.database.dto.security.Views;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
@@ -11,6 +12,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -67,13 +69,13 @@ public class OrderProduct {
     @Schema(
             description = "Order product status",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            example = "NEW",
-            allowableValues = {"NEW", "PROCESSING", "COMPLETED", "CANCELED"}
+            example = "ORDERED",
+            allowableValues = {"ORDERED", "IN_WAREHOUSE", "ON_WAY", "ARRIVED", "DELIVERED", "RETURNED", "CANCELLED"}
     )
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Put.class})
-    private Status status;
+    private BoxStatus status;
 
     @Schema(
             description = "Order associated with this order product",
@@ -104,6 +106,29 @@ public class OrderProduct {
     @Column(name = "parts_count", nullable = false)
     @JsonView({Views.OrderProductView.Get.class, Views.OrderProductView.Post.class, Views.OrderProductView.Put.class})
     private Integer partsCount;
+
+    @Schema(
+            description = "Price value captured at time of order addition",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            accessMode = Schema.AccessMode.READ_ONLY,
+            minimum = "0.00",
+            example = "16.00"
+    )
+    @Column(name = "price", nullable = false)
+    @JsonView(Views.OrderProductView.Get.class)
+    private BigDecimal price;
+
+    @Schema(
+            description = "Price currency captured at time of order addition",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            allowableValues = {"EUR", "USD", "RUB"},
+            defaultValue = "EUR",
+            example = "EUR"
+    )
+    @Column(name = "currency", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @JsonView(Views.PartView.Get.class)
+    private Currency currency;
 
     @Override
     public boolean equals(Object o) {

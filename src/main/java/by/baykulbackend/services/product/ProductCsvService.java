@@ -1,5 +1,6 @@
 package by.baykulbackend.services.product;
 
+import by.baykulbackend.database.dao.product.Currency;
 import by.baykulbackend.database.dao.product.Part;
 import by.baykulbackend.database.dto.product.ProductDto;
 import by.baykulbackend.database.repository.product.IPartRepository;
@@ -118,6 +119,7 @@ public class ProductCsvService {
         }
 
         part.setPrice(new BigDecimal(line[6].replace(',', '.')).setScale(2));
+        part.setCurrency(Currency.EUR);
         part.setBrand(line[7]);
 
         uniqueArticles.add(part.getArticle());
