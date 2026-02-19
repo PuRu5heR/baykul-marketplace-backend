@@ -33,7 +33,7 @@ public class Balance {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.BalanceView.Get.class, Views.BalanceView.Post.class, Views.BalanceView.Put.class})
+    @JsonView({Views.BalanceView.Get.class, Views.BalanceView.Post.class, Views.BalanceView.Patch.class})
     private UUID id;
 
     @Schema(

@@ -32,7 +32,7 @@ public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.CartView.Get.class, Views.CartView.Post.class, Views.CartView.Put.class})
+    @JsonView({Views.CartView.Get.class, Views.CartView.Post.class, Views.CartView.Patch.class})
     private UUID id;
 
     @Schema(

@@ -31,7 +31,7 @@ public class Part {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private UUID id;
 
     @Schema(
@@ -61,7 +61,7 @@ public class Part {
             example = "2405947"
     )
     @Column(name = "article", unique = true, nullable = false, length = 50)
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private String article;
 
     @Schema(
@@ -71,7 +71,7 @@ public class Part {
             example = "Engine Oil LL01 5W30"
     )
     @Column(name = "name", nullable = false)
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private String name;
 
     @Schema(
@@ -81,7 +81,7 @@ public class Part {
             example = "150.4"
     )
     @Column(name = "weight")
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private Double weight;
 
     // TODO: find out what this field is for
@@ -92,7 +92,7 @@ public class Part {
             example = "3"
     )
     @Column(name = "min_count", nullable = false)
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private Integer minCount;
 
     @Schema(
@@ -102,7 +102,7 @@ public class Part {
             example = "5"
     )
     @Column(name = "storage_count")
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private Integer storageCount;
 
     // TODO: find out what this field is for
@@ -114,7 +114,7 @@ public class Part {
             example = "3.01"
     )
     @Column(name = "return_part")
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private BigDecimal returnPart;
 
     @Schema(
@@ -125,7 +125,7 @@ public class Part {
             example = "7862.43"
     )
     @Column(name = "price", nullable = false)
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private BigDecimal price;
 
     @Schema(
@@ -137,7 +137,7 @@ public class Part {
     )
     @Column(name = "currency", nullable = false)
     @Enumerated(EnumType.STRING)
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private Currency currency;
 
     @Schema(
@@ -147,7 +147,7 @@ public class Part {
             example = "rolls royce"
     )
     @Column(name = "brand", nullable = false, length = 50)
-    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Put.class})
+    @JsonView({Views.PartView.Get.class, Views.PartView.Post.class, Views.PartView.Patch.class})
     private String brand;
 
     @Override

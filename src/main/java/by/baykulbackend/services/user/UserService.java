@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,7 +32,6 @@ public class UserService {
     private final AuthService authService;
     private final PasswordEncoderConfig passwordEncoderConfig;
 
-    // TODO: realize user's profile
     /**
      * Creates a new user in the system.
      * Validates input.
@@ -62,9 +60,14 @@ public class UserService {
             user.setBlocked(false);
         }
 
-        Profile profile = new Profile();
+        Profile profile = user.getProfile();
+
+        if (profile == null) {
+            profile = new Profile();
+            user.setProfile(profile);
+        }
+
         profile.setUser(user);
-        user.setProfile(profile);
 
         Balance balance = new Balance();
         balance.setUser(user);
@@ -165,32 +168,53 @@ public class UserService {
         }
 
         if (user.getLogin() != null) {
+            if (StringUtils.isBlank(user.getLogin())) {
+                response.put("error_login", "Login must not be empty");
+                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            }
+
             userFromDB.setLogin(user.getLogin());
             log.info("User's login with id {} has been updated -> {}",
                     id, authService.getAuthInfo().getPrincipal());
         }
 
         if (user.getEmail() != null) {
-            userFromDB.setEmail(user.getEmail());
+            if (StringUtils.isBlank(user.getEmail())) {
+                if (StringUtils.isBlank(userFromDB.getPhoneNumber())
+                        || (user.getPhoneNumber() != null && StringUtils.isBlank(userFromDB.getPhoneNumber()))) {
+                    response.put("error_email", "One of the following must be filled in: email, phone number");
+                    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                }
+                userFromDB.setEmail(null);
+            } else {
+                userFromDB.setEmail(user.getEmail());
+            }
             log.info("User's email with id {} has been updated -> {}",
                     id, authService.getAuthInfo().getPrincipal());
         }
 
         if (user.getPhoneNumber() != null) {
-            userFromDB.setPhoneNumber(user.getPhoneNumber());
+            if (StringUtils.isBlank(user.getPhoneNumber())) {
+                if (userFromDB.getEmail() == null) {
+                    response.put("error_phone_number", "One of the following must be filled in: email, phone number");
+                    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                }
+                userFromDB.setPhoneNumber(null);
+            } else {
+                userFromDB.setPhoneNumber(user.getPhoneNumber());
+            }
             log.info("User's phone number with id {} has been updated -> {}",
                     id, authService.getAuthInfo().getPrincipal());
         }
 
         if (user.getPassword() != null) {
-            // Delete all refresh tokens for security
             userFromDB.setPassword(passwordEncoderConfig.getPasswordEncoder().encode(user.getPassword()));
             iRefreshTokenRepository.deleteByUser(userFromDB);
             log.info("The password of User with the id {} has been updated -> {}",
                     id, authService.getAuthInfo().getPrincipal());
         }
 
-        if (user.getBlocked() != userFromDB.getBlocked()) {
+        if (user.getBlocked() != null && user.getBlocked() != userFromDB.getBlocked()) {
             userFromDB.setBlocked(user.getBlocked());
 
             if (user.getBlocked()) {
@@ -201,6 +225,41 @@ public class UserService {
 
             log.info("The blocked of User with the id {} has been updated -> {}",
                     id, authService.getAuthInfo().getPrincipal());
+        }
+
+        Profile profile = user.getProfile();
+        Profile profileFromDb = userFromDB.getProfile();
+
+        if (profile != null) {
+            if (profile.getSurname() != null) {
+                if (StringUtils.isBlank(profile.getSurname())) {
+                    profileFromDb.setSurname(null);
+                } else {
+                    profileFromDb.setSurname(profile.getSurname());
+                }
+                log.info("The surname of User with the id {} has been updated -> {}",
+                        id, authService.getAuthInfo().getPrincipal());
+            }
+
+            if (profile.getName() != null) {
+                if (StringUtils.isBlank(profile.getName())) {
+                    profileFromDb.setName(null);
+                } else {
+                    profileFromDb.setName(profile.getName());
+                }
+                log.info("The name of User with the id {} has been updated -> {}",
+                        id, authService.getAuthInfo().getPrincipal());
+            }
+
+            if (profile.getPatronymic() != null) {
+                if (StringUtils.isBlank(profile.getPatronymic())) {
+                    profileFromDb.setPatronymic(null);
+                } else {
+                    profileFromDb.setPatronymic(profile.getPatronymic());
+                }
+                log.info("The patronymic of User with the id {} has been updated -> {}",
+                        id, authService.getAuthInfo().getPrincipal());
+            }
         }
 
         iUserRepository.save(userFromDB);
@@ -319,6 +378,7 @@ public class UserService {
         return isNotValidUser(user, response);
     }
 
+    // TODO: add email validation
     /**
      * Validates a user request.
      *
@@ -341,10 +401,18 @@ public class UserService {
             }
         }
 
-        if (StringUtils.isNotBlank(user.getPassword()) && user.getPassword().length() < 8) {
-            response.put("error_password", "The password must be at least 8 characters");
-            log.warn("The password must be at least 8 characters");
-            return true;
+        if (StringUtils.isNotBlank(user.getPassword())) {
+            if (user.getPassword().length() < 8) {
+                response.put("error_password", "The password must be at least 8 characters");
+                log.warn("The password must be at least 8 characters");
+                return true;
+            }
+
+            if (user.getPassword().length() > 100) {
+                response.put("error_password", "The password must be at most 100 characters");
+                log.warn("The password must be at most 100 characters");
+                return true;
+            }
         }
 
 
@@ -352,6 +420,22 @@ public class UserService {
             response.put("error_phone_number", "Invalid phone number");
             log.warn("Invalid phone number");
             return true;
+        }
+
+        Profile profile = user.getProfile();
+
+        if (profile != null) {
+            if (profile.getSurname() != null && profile.getSurname().length() > 50) {
+                response.put("error_surname", "Surname must be at most 50 characters");
+            }
+
+            if (profile.getName() != null && profile.getName().length() > 50) {
+                response.put("error_name", "Name must be at most 50 characters");
+            }
+
+            if (profile.getPatronymic() != null && profile.getPatronymic().length() > 50) {
+                response.put("error_patronymic", "Patronymic must be at most 50 characters");
+            }
         }
 
         return false;

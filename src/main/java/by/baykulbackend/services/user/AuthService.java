@@ -57,13 +57,21 @@ public class AuthService {
             final String refreshToken = jwtProvider.generateRefreshToken(user);
             String clientIp = requestService.getClientIp(request);
 
-            RefreshToken refToken = new RefreshToken();
-            refToken.setUser(user);
-            refToken.setName(refreshToken);
-            refToken.setUserAgent(userAgent);
-            refToken.setIpAddress(clientIp);
-            iUserRepository.save(user);
-            iRefreshTokenRepository.save(refToken);
+            RefreshToken existingRefToken =
+                    iRefreshTokenRepository.findRefreshTokenByUserAgentAndIpAddress(userAgent, clientIp);
+
+            if (existingRefToken == null) {
+                RefreshToken refToken = new RefreshToken();
+                refToken.setUser(user);
+                refToken.setName(refreshToken);
+                refToken.setUserAgent(userAgent);
+                refToken.setIpAddress(clientIp);
+                iUserRepository.save(user);
+                iRefreshTokenRepository.save(refToken);
+            } else {
+                existingRefToken.setName(refreshToken);
+                iRefreshTokenRepository.save(existingRefToken);
+            }
 
             return new JwtResponse(accessToken, refreshToken);
         } else {

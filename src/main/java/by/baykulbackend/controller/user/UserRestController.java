@@ -42,7 +42,8 @@ public class UserRestController {
 
     @Operation(
             summary = "Get all users",
-            description = "Retrieves all users from the system with their refresh tokens. Requires users:write permission.",
+            description = "Retrieves all users from the system with their refresh tokens. " +
+                    "Requires users:write permission or role manager.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @Parameters({
@@ -132,7 +133,7 @@ public class UserRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:write')")
+    @PreAuthorize("hasAnyAuthority('users:write') or hasRole('MANAGER')")
     @JsonView(Views.UserView.Get.class)
     @GetMapping
     public List<User> getAll(
@@ -143,7 +144,8 @@ public class UserRestController {
 
     @Operation(
             summary = "Get user by ID",
-            description = "Retrieves a specific user by UUID with their refresh tokens. Requires users:write permission.",
+            description = "Retrieves a specific user by UUID with their refresh tokens. " +
+                    "Requires users:write permission or role manager.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -237,7 +239,7 @@ public class UserRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('users:write')")
+    @PreAuthorize("hasAnyAuthority('users:write') or hasRole('MANAGER')")
     @JsonView(Views.UserFullView.class)
     @GetMapping("/id")
     public User getOne(
@@ -269,7 +271,12 @@ public class UserRestController {
                                               "email": "new.user@example.com",
                                               "phoneNumber": "+375292345678",
                                               "role": "USER",
-                                              "blocked": false
+                                              "blocked": false,
+                                              "profile": {
+                                                "surname": "Doe",
+                                                "name": "John",
+                                                "patronymic": "Michael"
+                                              }
                                             }
                                             """
                             )
@@ -383,7 +390,12 @@ public class UserRestController {
                                               "login": "new_user",
                                               "password": "securePassword123",
                                               "email": "new.user@example.com",
-                                              "phoneNumber": "+375292345678"
+                                              "phoneNumber": "+375292345678",
+                                              "profile": {
+                                                "surname": "Doe",
+                                                "name": "John",
+                                                "patronymic": "Michael"
+                                              }
                                             }
                                             """
                             )
@@ -450,13 +462,13 @@ public class UserRestController {
 
     @Operation(
             summary = "Update user",
-            description = "Updates an existing user's information. Only non-null fields are updated. Requires users:write permission.",
+            description = "Updates an existing user's information. Requires users:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "User data to update",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Put.class),
+                            schema = @Schema(implementation = Views.UserView.Patch.class),
                             examples = @ExampleObject(
                                     name = "Update user request example",
                                     summary = "User update request",
@@ -466,7 +478,12 @@ public class UserRestController {
                                               "email": "updated.email@example.com",
                                               "phoneNumber": "+375293456789",
                                               "password": "newSecurePassword456",
-                                              "blocked": false
+                                              "blocked": false,
+                                              "profile": {
+                                                "surname": "Doe",
+                                                "name": "John",
+                                                "patronymic": "Michael"
+                                              }
                                             }
                                             """
                             )
@@ -558,7 +575,7 @@ public class UserRestController {
     })
     @Transactional
     @PreAuthorize("hasAnyAuthority('users:write')")
-    @PutMapping("/id")
+    @PatchMapping("/id")
     public ResponseEntity<?> update(
             @Parameter(
                     description = "UUID of the user to update",
@@ -566,7 +583,7 @@ public class UserRestController {
                     example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @RequestParam UUID id,
-            @RequestBody @JsonView(Views.UserView.Put.class) User user) {
+            @RequestBody @JsonView(Views.UserView.Patch.class) User user) {
         return userService.updateUserById(id, user);
     }
 

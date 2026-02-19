@@ -35,7 +35,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private UUID id;
 
     @Schema(
@@ -66,16 +66,18 @@ public class User {
             example = "john"
     )
     @Column(name = "login", nullable = false, unique = true, length = 50)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private String login;
 
     @Schema(
             description = "Hashed password (BCrypt)",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            accessMode = Schema.AccessMode.WRITE_ONLY
+            accessMode = Schema.AccessMode.WRITE_ONLY,
+            maxLength = 100,
+            minLength = 8
     )
-    @Column(name = "password", nullable = false)
-    @JsonView({Views.UserView.Post.class, Views.UserView.Put.class})
+    @Column(name = "password", nullable = false, length = 1000)
+    @JsonView({Views.UserView.Post.class, Views.UserView.Patch.class})
     private String password;
 
     @Schema(
@@ -87,7 +89,7 @@ public class User {
     )
     @Email
     @Column(name = "email", unique = true)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private String email;
 
     @Schema(
@@ -99,7 +101,7 @@ public class User {
             example = "+375296435434"
     )
     @Column(name = "phone_number", length = 15)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private String phoneNumber;
 
     @Schema(
@@ -108,7 +110,7 @@ public class User {
     )
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private Role role;
 
     @Schema(
@@ -118,7 +120,7 @@ public class User {
             example = "false"
     )
     @Column(name = "blocked", nullable = false)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Patch.class})
     private Boolean blocked;
 
     @Schema(
@@ -134,7 +136,7 @@ public class User {
             example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174000\", \"surname\": \"Surname\"}"
     )
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private Profile profile;
 
     @Schema(

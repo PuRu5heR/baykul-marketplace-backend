@@ -69,7 +69,7 @@ public class Profile {
             example = "Doe"
     )
     @Column(name = "surname", length = 50)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private String surname;
 
     @Schema(
@@ -79,7 +79,7 @@ public class Profile {
             example = "John"
     )
     @Column(name = "name", length = 50)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private String name;
 
     @Schema(
@@ -89,7 +89,7 @@ public class Profile {
             example = "Michael"
     )
     @Column(name = "patronymic", length = 50)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Put.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private String patronymic;
 
     @Override

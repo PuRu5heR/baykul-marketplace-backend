@@ -31,7 +31,7 @@ public class CartProduct {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.CartProductView.Get.class, Views.CartProductView.Post.class, Views.CartProductView.Put.class})
+    @JsonView({Views.CartProductView.Get.class, Views.CartProductView.Post.class, Views.CartProductView.Patch.class})
     private UUID id;
 
     @Schema(
@@ -81,7 +81,7 @@ public class CartProduct {
             example = "3"
     )
     @Column(name = "parts_count", nullable = false)
-    @JsonView({Views.CartProductView.Get.class, Views.CartProductView.Post.class, Views.CartProductView.Put.class})
+    @JsonView({Views.CartProductView.Get.class, Views.CartProductView.Post.class, Views.CartProductView.Patch.class})
     private Integer partsCount;
 
     @Override

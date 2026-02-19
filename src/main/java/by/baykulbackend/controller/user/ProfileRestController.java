@@ -148,13 +148,13 @@ public class ProfileRestController {
     @Operation(
             summary = "Update user by authentication",
             description = "Updates an existing information of user retrieved by authentication principal. " +
-                    "Only non-null fields are updated. Requires users:read permission.",
+                    "Requires users:read permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "User data to update",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.UserView.Put.class),
+                            schema = @Schema(implementation = Views.UserView.Patch.class),
                             examples = @ExampleObject(
                                     name = "Update user request example",
                                     summary = "User update request",
@@ -164,7 +164,12 @@ public class ProfileRestController {
                                               "email": "updated.email@example.com",
                                               "phoneNumber": "+375293456789",
                                               "password": "newSecurePassword456",
-                                              "blocked": false
+                                              "blocked": false,
+                                              "profile": {
+                                                "surname": "Doe",
+                                                "name": "John",
+                                                "patronymic": "Michael"
+                                              }
                                             }
                                             """
                             )
@@ -256,8 +261,8 @@ public class ProfileRestController {
     })
     @Transactional
     @PreAuthorize("hasAnyAuthority('users:read')")
-    @PutMapping
-    public ResponseEntity<?> updateProfile(@RequestBody @JsonView(Views.UserView.Put.class) User user) {
+    @PatchMapping
+    public ResponseEntity<?> updateProfile(@RequestBody @JsonView(Views.UserView.Patch.class) User user) {
         return userService.updateProfile(user);
     }
 

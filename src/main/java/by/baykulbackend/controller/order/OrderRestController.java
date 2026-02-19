@@ -243,7 +243,18 @@ public class OrderRestController {
 
     @Operation(
             summary = "Update order",
-            description = "Updates an order (status). Requires orders:write permission.",
+            description = """
+                    Updates an order. Requires orders:write permission.
+                    
+                    **Available status transitions:**
+                    - From CREATED → PAID, CANCELLED
+                    - From PAID → PROCESSING, CANCELLED
+                    - From PROCESSING → COMPLETED, CANCELLED
+                    - From COMPLETED → No further transitions (terminal state)
+                    - From CANCELLED → No further transitions (terminal state)
+                    
+                    Only the status field can be updated through this endpoint.
+                    """,
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Order data to update",
@@ -281,17 +292,20 @@ public class OrderRestController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Bad request - invalid order data",
+                    description = """
+                            Bad request - invalid order data. Possible reasons:
+                            - Invalid status value provided
+                            """,
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Validation error example",
-                                    summary = "Validation errors",
+                                    name = "Invalid transition example",
+                                    summary = "Invalid status transition",
                                     value = """
-                                            {
-                                              "error": "Invalid status value"
-                                            }
-                                            """
+                                                    {
+                                                      "error": "Order's status can be changed only to PAID, PROCESSING or CANCELLED",
+                                                    }
+                                                    """
                             )
                     )
             ),
@@ -343,7 +357,7 @@ public class OrderRestController {
                     )
             )
     })
-    @PutMapping
+    @PatchMapping
     @PreAuthorize("hasAnyAuthority('orders:write')")
     public ResponseEntity<?> update(
             @Parameter(
@@ -358,7 +372,23 @@ public class OrderRestController {
 
     @Operation(
             summary = "Update order product",
-            description = "Updates an order product (number, status, parts count). Requires orders:write permission.",
+            description = """
+                    Updates an order product. Requires orders:write permission.
+                    
+                    **Available status transitions for BoxStatus:**
+                    - From ORDERED → IN_WAREHOUSE, CANCELLED
+                    - From IN_WAREHOUSE → ON_WAY, CANCELLED
+                    - From ON_WAY → ARRIVED, RETURNED
+                    - From ARRIVED → DELIVERED, RETURNED
+                    - From DELIVERED → RETURNED
+                    - From RETURNED → No further transitions (terminal state)
+                    - From CANCELLED → No further transitions (terminal state)
+                    
+                    The following fields can be updated:
+                    - `status` - must follow the transition rules above
+                    - `number` - order product number (must be >= 100000)
+                    - `partsCount` - quantity of parts (must be >= 1)
+                    """,
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Order product data to update",
@@ -398,7 +428,12 @@ public class OrderRestController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Bad request - invalid order product data",
+                    description = """
+                            Bad request - invalid order product data. Possible reasons:
+                            - Status transition not allowed from current state
+                            - Order product number must be >= 100000
+                            - Parts count must be >= 1
+                            """,
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
@@ -460,7 +495,7 @@ public class OrderRestController {
                     )
             )
     })
-    @PutMapping("/product")
+    @PatchMapping("/product")
     @PreAuthorize("hasAnyAuthority('orders:write')")
     public ResponseEntity<?> updateOrderProduct(
             @Parameter(

@@ -32,7 +32,7 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Put.class})
+    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Patch.class})
     private UUID id;
 
     @Schema(
@@ -62,7 +62,7 @@ public class Order {
             minimum = "100000"
     )
     @Column(name = "number", nullable = false, unique = true, updatable = false)
-    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Put.class})
+    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Patch.class})
     private Long number;
 
     @Schema(
@@ -73,7 +73,7 @@ public class Order {
     )
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Put.class})
+    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Patch.class})
     private OrderStatus status;
 
     @Schema(

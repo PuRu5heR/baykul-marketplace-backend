@@ -467,7 +467,7 @@ public class PartRestController {
                     description = "Part data to update",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Views.PartView.Put.class),
+                            schema = @Schema(implementation = Views.PartView.Patch.class),
                             examples = @ExampleObject(
                                     name = "Update part request example",
                                     summary = "Part update request",
@@ -572,7 +572,7 @@ public class PartRestController {
     })
     @Transactional
     @PreAuthorize("hasAnyAuthority('products:write')")
-    @PutMapping
+    @PatchMapping
     public ResponseEntity<?> update(
             @Parameter(
                     description = "UUID of the part to update",
@@ -580,7 +580,7 @@ public class PartRestController {
                     example = "123e4567-e89b-12d3-a456-426614174001"
             )
             @RequestParam UUID id,
-            @RequestBody @JsonView(Views.PartView.Put.class) Part part) {
+            @RequestBody @JsonView(Views.PartView.Patch.class) Part part) {
         return partService.updatePart(id, part);
     }
 

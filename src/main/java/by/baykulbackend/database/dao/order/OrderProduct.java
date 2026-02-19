@@ -33,7 +33,7 @@ public class OrderProduct {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.OrderProductView.Get.class, Views.OrderProductView.Post.class, Views.OrderProductView.Put.class})
+    @JsonView({Views.OrderProductView.Get.class, Views.OrderProductView.Post.class, Views.OrderProductView.Patch.class})
     private UUID id;
 
     @Schema(
@@ -63,7 +63,7 @@ public class OrderProduct {
             minimum = "100000"
     )
     @Column(name = "number", unique = true)
-    @JsonView({Views.OrderProductView.Get.class, Views.OrderProductView.Post.class, Views.OrderProductView.Put.class})
+    @JsonView({Views.OrderProductView.Get.class, Views.OrderProductView.Post.class, Views.OrderProductView.Patch.class})
     private Long number;
 
     @Schema(
@@ -74,7 +74,7 @@ public class OrderProduct {
     )
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Put.class})
+    @JsonView({Views.OrderView.Get.class, Views.OrderView.Post.class, Views.OrderView.Patch.class})
     private BoxStatus status;
 
     @Schema(
@@ -104,7 +104,7 @@ public class OrderProduct {
             example = "3"
     )
     @Column(name = "parts_count", nullable = false)
-    @JsonView({Views.OrderProductView.Get.class, Views.OrderProductView.Post.class, Views.OrderProductView.Put.class})
+    @JsonView({Views.OrderProductView.Get.class, Views.OrderProductView.Post.class, Views.OrderProductView.Patch.class})
     private Integer partsCount;
 
     @Schema(

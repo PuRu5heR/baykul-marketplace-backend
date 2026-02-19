@@ -342,7 +342,7 @@ public class UserCartRestController {
                     )
             )
     })
-    @PutMapping("/update")
+    @PatchMapping("/update")
     @PreAuthorize("hasAnyAuthority('carts:read')")
     public ResponseEntity<?> updateCartProduct(
             @Parameter(

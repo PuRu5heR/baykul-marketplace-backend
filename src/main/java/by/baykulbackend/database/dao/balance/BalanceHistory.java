@@ -31,7 +31,7 @@ public class BalanceHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.BalanceHistoryView.Get.class, Views.BalanceHistoryView.Post.class, Views.BalanceHistoryView.Put.class})
+    @JsonView({Views.BalanceHistoryView.Get.class, Views.BalanceHistoryView.Post.class, Views.BalanceHistoryView.Patch.class})
     private UUID id;
 
     @Schema(

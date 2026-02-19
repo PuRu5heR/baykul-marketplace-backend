@@ -15,7 +15,7 @@ spring:
     show-sql: false
     hibernate:
       # NOTE: Be sure to replace with 'validate' in production
-      ddl-auto: update
+      ddl-auto: validate
 
   servlet:
     multipart:
