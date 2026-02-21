@@ -136,7 +136,7 @@ public class OrderProduct {
             example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174001\"}",
             requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bill_id")
     @JsonView(Views.OrderProductFullView.class)
     private Bill bill;
