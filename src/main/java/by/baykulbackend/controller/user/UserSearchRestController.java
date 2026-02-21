@@ -118,7 +118,7 @@ public class UserSearchRestController {
     @GetMapping
     public List<User> search(
             @RequestParam(required = false, defaultValue = "") String text,
-            @PageableDefault(size = 20, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 50, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return userService.searchUser(text, pageable).stream().toList();
     }
@@ -304,7 +304,7 @@ public class UserSearchRestController {
     @GetMapping("/login")
     public List<User> searchByLogin(
             @RequestParam String login,
-            @PageableDefault(size = 20, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 50, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return iUserRepository.findByLoginContainingIgnoreCase(login, pageable).stream().toList();
     }
@@ -490,7 +490,7 @@ public class UserSearchRestController {
     @GetMapping("/email")
     public List<User> searchByEmail(
             @RequestParam String email,
-            @PageableDefault(size = 20, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 50, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return iUserRepository.findByEmailContainingIgnoreCase(email, pageable).stream().toList();
     }
@@ -676,7 +676,7 @@ public class UserSearchRestController {
     @GetMapping("/phoneNumber")
     public List<User> searchByPhoneNumber(
             @RequestParam String phoneNumber,
-            @PageableDefault(size = 20, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 50, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return iUserRepository.findByPhoneNumberContaining(phoneNumber, pageable).stream().toList();
     }

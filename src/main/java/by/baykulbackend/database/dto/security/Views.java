@@ -79,6 +79,17 @@ public class Views {
         interface Patch {}
     }
 
-    public interface OrderProductFullView extends OrderProductView.Get, OrderView.Get, PartView.Get {}
+    public interface OrderProductFullView extends OrderProductView.Get, OrderView.Get, PartView.Get, BillView.Get {}
+
+    // Bill views
+    public interface BillView {
+        interface Get {}
+        interface Post {}
+        interface Patch {}
+    }
+
+    public interface BillFullView extends BillView.Get, OrderProductView.Get {}
+
+    public interface BillCreateFullView extends BillView.Post, OrderProductView.Get {}
 }
 

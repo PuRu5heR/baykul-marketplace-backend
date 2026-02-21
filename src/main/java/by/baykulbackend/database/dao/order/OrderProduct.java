@@ -1,5 +1,6 @@
 package by.baykulbackend.database.dao.order;
 
+import by.baykulbackend.database.dao.bill.Bill;
 import by.baykulbackend.database.dao.product.Currency;
 import by.baykulbackend.database.dao.product.Part;
 import by.baykulbackend.database.dto.security.Views;
@@ -129,6 +130,16 @@ public class OrderProduct {
     @Enumerated(EnumType.STRING)
     @JsonView(Views.PartView.Get.class)
     private Currency currency;
+
+    @Schema(
+            description = "Bill associated with this order product",
+            example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174001\"}",
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "bill_id")
+    @JsonView(Views.OrderProductFullView.class)
+    private Bill bill;
 
     @Override
     public boolean equals(Object o) {

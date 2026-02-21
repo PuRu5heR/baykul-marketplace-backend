@@ -1,10 +1,10 @@
 package by.baykulbackend.controller.order;
 
+import by.baykulbackend.database.dao.order.BoxStatus;
 import by.baykulbackend.database.dao.order.Order;
 import by.baykulbackend.database.dao.order.OrderProduct;
 import by.baykulbackend.database.dto.security.Views;
-import by.baykulbackend.database.repository.order.IOrderRepository;
-import by.baykulbackend.exceptions.NotFoundException;
+import by.baykulbackend.database.repository.order.IOrderProductRepository;
 import by.baykulbackend.services.order.OrderService;
 import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,16 +31,17 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/order")
+@RequestMapping("/api/v1/order/product")
 @RequiredArgsConstructor
 @Tag(name = "Orders", description = "Orders management")
-public class OrderRestController {
-    private final IOrderRepository iOrderRepository;
+public class OrderProductRestController {
     private final OrderService orderService;
+    private final IOrderProductRepository iOrderProductRepository;
 
     @Operation(
-            summary = "Get all orders",
-            description = "Retrieves all orders from the system with pagination. Requires orders:write permission.",
+            summary = "Get all order products without bill and with status ORDERED",
+            description = "Retrieves all order products without bill and with status ORDERED from the system " +
+                    "with pagination. Requires orders:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @Parameters({
@@ -65,14 +66,14 @@ public class OrderRestController {
                                                 "createdTs": "2024-01-15T10:30:00",
                                                 "updatedTs": "2024-01-20T14:45:30",
                                                 "number": 100001,
-                                                "status": "CREATED"
+                                                "status": "ORDERED"
                                               },
                                               {
                                                 "id": "522t4767-e89b-12d3-a456-426614174563",
                                                 "createdTs": "2024-01-16T11:30:00",
                                                 "updatedTs": "2024-01-21T15:45:30",
                                                 "number": 100002,
-                                                "status": "PROCESSING"
+                                                "status": "ORDERED"
                                               }
                                             ]
                                             """
@@ -112,161 +113,48 @@ public class OrderRestController {
                     )
             )
     })
-    @GetMapping
+    @GetMapping("/withoutBill")
     @PreAuthorize("hasAnyAuthority('orders:write')")
-    @JsonView(Views.OrderView.Get.class)
-    public List<Order> getAll(
+    @JsonView(Views.OrderProductView.Get.class)
+    public List<OrderProduct> getAllOrderedWithoutBill(
             @PageableDefault(size = 50, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return iOrderRepository.findAll(pageable).stream().toList();
+        return iOrderProductRepository.findAllByBillIsNullAndStatus(BoxStatus.ORDERED, pageable).stream().toList();
     }
 
     @Operation(
-            summary = "Get order by ID",
-            description = "Retrieves a specific order by UUID with all details. Requires orders:write permission.",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Order retrieved successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Views.OrderFullView.class),
-                            examples = @ExampleObject(
-                                    name = "Single order response example",
-                                    summary = "Order details",
-                                    value = """
-                                            {
-                                              "id": "123e4567-e89b-12d3-a456-426614174001",
-                                              "createdTs": "2024-01-15T10:30:00",
-                                              "updatedTs": "2024-01-20T14:45:30",
-                                              "number": 100001,
-                                              "status": "CREATED",
-                                              "user": {
-                                                "id": "123e4567-e89b-12d3-a456-426614174000",
-                                                "login": "john_doe",
-                                                "email": "john.doe@example.com",
-                                                "profile": {
-                                                  "id": "123e4567-e89b-12d3-a456-426614174010",
-                                                  "surname": "Doe",
-                                                  "name": "John",
-                                                  "patronymic": "Michael"
-                                                }
-                                              },
-                                              "orderProducts": [
-                                                {
-                                                  "id": "30e9276f-ccce-45a7-9c28-e1ce22254eea",
-                                                  "number": null,
-                                                  "status": "ORDERED",
-                                                  "part": {
-                                                    "id": "63e9276f-ccce-45a7-9c28-e1ce24354eea",
-                                                    "article": "2405947",
-                                                    "name": "Engine Oil LL01 5W30",
-                                                    "weight": 150.4,
-                                                    "minCount": 3,
-                                                    "storageCount": 5,
-                                                    "returnPart": 3.01,
-                                                    "price": 7862.43,
-                                                    "currency": "EUR",
-                                                    "brand": "rolls royce"
-                                                  },
-                                                  "partsCount": 3
-                                                }
-                                              ]
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Unauthorized - JWT token missing or invalid",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Unauthorized example",
-                                    value = """
-                                            {
-                                              "error": "Unauthorized",
-                                              "message": "Full authentication is required to access this resource"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Forbidden - insufficient permissions",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Forbidden example",
-                                    value = """
-                                            {
-                                              "error": "Forbidden",
-                                              "message": "Access Denied"
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Order not found",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            examples = @ExampleObject(
-                                    name = "Not found example",
-                                    value = """
-                                            {
-                                              "error": "Order not found"
-                                            }
-                                            """
-                            )
-                    )
-            )
-    })
-    @GetMapping("/id")
-    @PreAuthorize("hasAnyAuthority('orders:write')")
-    @JsonView(Views.OrderFullView.class)
-    public Order getOne(
-            @Parameter(
-                    description = "UUID of the order to retrieve",
-                    required = true,
-                    example = "123e4567-e89b-12d3-a456-426614174000"
-            )
-            @RequestParam UUID id) {
-        return iOrderRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
-    }
-
-    @Operation(
-            summary = "Update order",
+            summary = "Update order product",
             description = """
-                    Updates an order. Requires orders:write permission.
+                    Updates an order product. Requires orders:write permission.
                     
-                    **Available status transitions:**
-                    - From CREATED → PAID, CANCELLED
-                    - From PAID → PROCESSING, CANCELLED
-                    - From PROCESSING → COMPLETED, CANCELLED
-                    - From COMPLETED → No further transitions (terminal state)
+                    **Available status transitions for BoxStatus:**
+                    - From ORDERED → IN_WAREHOUSE, CANCELLED
+                    - From IN_WAREHOUSE → ON_WAY, CANCELLED
+                    - From ON_WAY → ARRIVED, RETURNED
+                    - From ARRIVED → DELIVERED, RETURNED
+                    - From DELIVERED → RETURNED
+                    - From RETURNED → No further transitions (terminal state)
                     - From CANCELLED → No further transitions (terminal state)
                     
-                    Only the status field can be updated through this endpoint.
+                    The following fields can be updated:
+                    - `status` - must follow the transition rules above
+                    - `number` - order product number (must be >= 100000)
+                    - `partsCount` - quantity of parts (must be >= 1)
                     """,
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Order data to update",
+                    description = "Order product data to update",
                     required = true,
                     content = @Content(
-                            schema = @Schema(implementation = Order.class),
+                            schema = @Schema(implementation = OrderProduct.class),
                             examples = @ExampleObject(
-                                    name = "Update order request example",
-                                    summary = "Update order status",
+                                    name = "Update order product request example",
+                                    summary = "Update order product details",
                                     value = """
                                             {
-                                              "status": "PAID"
+                                              "number": 100001,
+                                              "status": "IN_WAREHOUSE",
+                                              "partsCount": 5
                                             }
                                             """
                             )
@@ -276,15 +164,15 @@ public class OrderRestController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Order updated successfully",
+                    description = "Order product updated successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Update order success example",
-                                    summary = "Order updated successfully",
+                                    name = "Update order product success example",
+                                    summary = "Order product updated successfully",
                                     value = """
                                             {
-                                              "update_order": "true"
+                                              "update_order_product": "true"
                                             }
                                             """
                             )
@@ -293,19 +181,21 @@ public class OrderRestController {
             @ApiResponse(
                     responseCode = "400",
                     description = """
-                            Bad request - invalid order data. Possible reasons:
-                            - Invalid status value provided
+                            Bad request - invalid order product data. Possible reasons:
+                            - Status transition not allowed from current state
+                            - Order product number must be >= 100000
+                            - Parts count must be >= 1
                             """,
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Invalid transition example",
-                                    summary = "Invalid status transition",
+                                    name = "Validation error example",
+                                    summary = "Validation errors",
                                     value = """
-                                                    {
-                                                      "error": "Order's status can be changed only to PAID, PROCESSING or CANCELLED",
-                                                    }
-                                                    """
+                                            {
+                                              "error": "Order product number must be greater or equal 100 000"
+                                            }
+                                            """
                             )
                     )
             ),
@@ -343,14 +233,14 @@ public class OrderRestController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Order not found",
+                    description = "Order product not found",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
                                     name = "Not found example",
                                     value = """
                                             {
-                                              "error": "Order not found"
+                                              "error": "Order product not found"
                                             }
                                             """
                             )
@@ -361,12 +251,12 @@ public class OrderRestController {
     @PreAuthorize("hasAnyAuthority('orders:write')")
     public ResponseEntity<?> update(
             @Parameter(
-                    description = "UUID of the order to update",
+                    description = "UUID of the order product to update",
                     required = true,
-                    example = "123e4567-e89b-12d3-a456-426614174000"
+                    example = "30e9276f-ccce-45a7-9c28-e1ce22254eea"
             )
             @RequestParam UUID id,
-            @RequestBody Order order) {
-        return orderService.updateOrder(id, order);
+            @RequestBody OrderProduct orderProduct) {
+        return orderService.updateOrderProduct(id, orderProduct);
     }
 }
