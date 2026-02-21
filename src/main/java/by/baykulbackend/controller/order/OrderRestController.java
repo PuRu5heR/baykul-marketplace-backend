@@ -1,7 +1,6 @@
 package by.baykulbackend.controller.order;
 
 import by.baykulbackend.database.dao.order.Order;
-import by.baykulbackend.database.dao.order.OrderProduct;
 import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.database.repository.order.IOrderRepository;
 import by.baykulbackend.exceptions.NotFoundException;

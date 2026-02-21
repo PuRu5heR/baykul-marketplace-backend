@@ -1,7 +1,6 @@
 package by.baykulbackend.controller.order;
 
 import by.baykulbackend.database.dao.order.BoxStatus;
-import by.baykulbackend.database.dao.order.Order;
 import by.baykulbackend.database.dao.order.OrderProduct;
 import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.database.repository.order.IOrderProductRepository;
@@ -33,7 +32,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/order/product")
 @RequiredArgsConstructor
-@Tag(name = "Orders", description = "Orders management")
+@Tag(name = "Order products", description = "Order products management")
 public class OrderProductRestController {
     private final OrderService orderService;
     private final IOrderProductRepository iOrderProductRepository;

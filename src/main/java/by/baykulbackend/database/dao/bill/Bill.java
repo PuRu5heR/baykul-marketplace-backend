@@ -56,6 +56,16 @@ public class Bill {
     private LocalDateTime updatedTs;
 
     @Schema(
+            description = "Unique number of the bill",
+            example = "12345",
+            minLength = 5,
+            minimum = "10000"
+    )
+    @Column(name = "number", nullable = false, unique = true, updatable = false)
+    @JsonView({Views.BillView.Get.class, Views.BillView.Post.class, Views.BillView.Patch.class})
+    private Long number;
+
+    @Schema(
             description = "Bill status",
             requiredMode = Schema.RequiredMode.REQUIRED,
             example = "DRAFT",

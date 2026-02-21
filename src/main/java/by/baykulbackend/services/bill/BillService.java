@@ -24,12 +24,15 @@ public class BillService {
     private final IBillRepository iBillRepository;
     private final AuthService authService;
 
+    private static final Long START_BILL_NUMBER = 10000L;
+
     @Transactional
     public ResponseEntity<?> createBill(Bill bill) {
         Map<String, Object> response = new HashMap<>();
 
         Bill newBill = new Bill();
         newBill.setStatus(BillStatus.DRAFT);
+        newBill.setNumber(generateBillNumber());
 
         List<OrderProduct> orderProducts = null;
 
@@ -70,5 +73,17 @@ public class BillService {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Generates unique bill number
+     * @return generated bill number
+     */
+    private Long generateBillNumber() {
+        Long maxNumber = iBillRepository.findAll().stream()
+                .map(Bill::getNumber)
+                .filter(Objects::nonNull)
+                .max(Long::compare)
+                .orElse(START_BILL_NUMBER - 1);
 
+        return maxNumber + 1;
+    }
 }
