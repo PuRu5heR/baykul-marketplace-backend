@@ -38,8 +38,8 @@ public class BalanceService {
                 balanceOperation.getOperationType(), balanceOperation.getAmount(), balanceOperation.getBalanceId(),
                 balanceOperation.getUserId(), authService.getAuthInfo().getPrincipal().toString());
 
-        if (balanceOperation.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BadRequestException("Operation amount must be greater than zero");
+        if (balanceOperation.getAmount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Operation amount must not be less than zero");
         }
 
         if (balanceOperation.getAmount().scale() > 2) {

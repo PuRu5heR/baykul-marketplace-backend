@@ -11,6 +11,8 @@ public class Views {
 
     public interface UserFullView extends UserView.Get, RefreshTokenView.Get, BalanceView.Get, CartView.Get {}
 
+    public interface UserAdminView extends UserFullView {}
+
     // Refresh token views
     public interface RefreshTokenView {
         interface Get {}

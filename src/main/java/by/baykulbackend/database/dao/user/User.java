@@ -120,8 +120,17 @@ public class User {
             example = "false"
     )
     @Column(name = "blocked", nullable = false)
-    @JsonView({Views.UserView.Get.class, Views.UserView.Patch.class})
+    @JsonView({Views.UserView.Get.class, Views.UserView.Post.class, Views.UserView.Patch.class})
     private Boolean blocked;
+
+    @Schema(
+            description = "Indicates user's payment permission",
+            defaultValue = "false",
+            example = "true"
+    )
+    @Column(name = "can_pay_later")
+    @JsonView({Views.UserAdminView.class, Views.UserView.Post.class, Views.UserView.Patch.class})
+    private Boolean canPayLater;
 
     @Schema(
             description = "List of refresh tokens associated with the user",

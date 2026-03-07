@@ -60,6 +60,10 @@ public class UserService {
             user.setBlocked(false);
         }
 
+        if (user.getCanPayLater() == null) {
+            user.setCanPayLater(false);
+        }
+
         Profile profile = user.getProfile();
 
         if (profile == null) {
@@ -94,6 +98,7 @@ public class UserService {
     public ResponseEntity<?> registerUser(User user) {
         user.setRole(Role.USER);
         user.setBlocked(false);
+        user.setCanPayLater(false);
 
         return createUser(user);
     }

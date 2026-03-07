@@ -9,7 +9,6 @@ import by.baykulbackend.database.dao.order.OrderStatus;
 import by.baykulbackend.database.dao.product.Part;
 import by.baykulbackend.database.dao.user.User;
 import by.baykulbackend.database.dto.balance.BalanceOperationDto;
-import by.baykulbackend.database.dto.order.CreateOrderRequestDto;
 import by.baykulbackend.database.repository.cart.ICartProductRepository;
 import by.baykulbackend.database.repository.cart.ICartRepository;
 import by.baykulbackend.database.repository.order.IOrderProductRepository;
@@ -24,7 +23,6 @@ import by.baykulbackend.services.balance.BalanceService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -48,52 +46,38 @@ public class OrderService {
     private static final Long START_ORDER_NUMBER = 100000L;
 
     /**
-     * Creates a new order from the user's cart
-     * @param request The create order request containing options like payLater
-     * @return ResponseEntity with a success/error message
+     * Creates a new order from the user's cart.
+     * <p>
+     * Process flow:
+     * 1. Validates cart is not empty
+     * 2. Generates unique order number
+     * 3. Sets initial status based on user's pay-later capability
+     * 4. Creates order products with CREATED status
+     * 5. Clears the user's cart
+     *
+     * @return ResponseEntity with creation status and order ID
      * @throws NotFoundException if user or cart not found
-     * @throws BadRequestException if the user's cart is empty
+     * @throws BadRequestException if cart is empty
      */
     @Transactional
-    public ResponseEntity<?> createOrderFromCart(CreateOrderRequestDto request) {
+    public ResponseEntity<?> createOrderFromCart() {
         Map<String, Object> response = new HashMap<>();
 
-        User user = getUser();
-        Cart cart = getCart(user);
+        User user = getCurrentUser();
+        Cart cart = iCartRepository.findByUserLoginWithLock(user.getLogin())
+                .orElseThrow(() -> new NotFoundException("Cart not found"));
 
-        validateCart(cart);
-
-        var availabilityResult = checkAvailability(cart);
-        List<OrderProduct> orderProducts = availabilityResult.orderProducts;
-        List<Map<String, Object>> unavailableProducts = availabilityResult.unavailableProducts;
-
-        if (!availabilityResult.hasAvailableProducts) {
-            response.put("create_order", "false");
-            response.put("error", "No products available in storage");
-            response.put("unavailable_products", unavailableProducts);
-            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        if (cart.getCartProducts() == null || cart.getCartProducts().isEmpty()) {
+            throw new BadRequestException("Cart is empty");
         }
 
-        BigDecimal totalOrderPrice = calculateTotalOrderPrice(orderProducts);
-
-        Order order = buildAndSaveOrder(user, OrderStatus.CREATED);
-        saveOrderProducts(order, orderProducts);
+        Order order = buildAndSaveOrder(user);
+        saveOrderProducts(order, cart);
 
         iCartProductRepository.deleteAllByCartId(cart.getId());
 
-        if (!request.isPayLater() && totalOrderPrice.compareTo(BigDecimal.ZERO) > 0) {
-            processPayment(user, order, totalOrderPrice);
-            order.setStatus(OrderStatus.PAID);
-            iOrderRepository.save(order);
-        }
-
         response.put("create_order", "true");
         response.put("id", order.getId().toString());
-
-        if (!unavailableProducts.isEmpty()) {
-            response.put("warning", "Some products were unavailable");
-            response.put("unavailable_products", unavailableProducts);
-        }
 
         log.info("Order {} created for user {} -> {}", order.getNumber(), user.getLogin(),
                 authService.getAuthInfo().getPrincipal());
@@ -102,182 +86,101 @@ public class OrderService {
     }
 
     /**
-     * Pays for an existing order
+     * Confirms an order that is waiting for confirmation.
+     * <p>
+     * This operation:
+     * 1. Validates order is in CONFIRMATION_WAITING status
+     * 2. Changes status to ORDERED
+     * 3. Updates product statuses based on availability:
+     *    - Products with sufficient stock → IN_WAREHOUSE
+     *    - Products with insufficient stock → TO_ORDER
+     * 4. Updates overall order status based on product statuses
+     *
+     * @param orderId UUID of the order to confirm
+     * @return ResponseEntity with confirmation status
+     * @throws NotFoundException if order not found
+     * @throws BadRequestException if order is not in CONFIRMATION_WAITING status
+     */
+    @Transactional
+    public ResponseEntity<?> confirmOrder(UUID orderId) {
+        Map<String, Object> response = new HashMap<>();
+
+        Order order = iOrderRepository.findByIdWithLock(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        if (!order.getStatus().equals(OrderStatus.CONFIRMATION_WAITING)) {
+            throw new BadRequestException("No confirmation needed");
+        }
+
+        updateOrderStatusAfterConfirmation(order);
+        response.put("confirmation", "true");
+        log.info("Order {} confirmed by {}", order.getNumber(), authService.getAuthInfo().getPrincipal());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Pays for an existing order.
+     *
      * @param orderId The UUID of the order to pay for
-     * @return ResponseEntity with success/error message
+     * @return ResponseEntity with payment status
+     * @throws NotFoundException if order not found
+     * @throws BadRequestException if order is already paid
      */
     @Transactional
     public ResponseEntity<?> payForOrder(UUID orderId) {
-        User user = getUser();
+        Map<String, Object> response = new HashMap<>();
+
+        Order order = iOrderRepository.findByIdWithLock(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        return payForOrder(order, response);
+    }
+
+    /**
+     * Pays for an existing order belonging to the current user.
+     *
+     * @param orderId The UUID of the order to pay for
+     * @return ResponseEntity with payment status
+     * @throws NotFoundException if order not found
+     * @throws BadRequestException if order doesn't belong to user or is already paid
+     */
+    @Transactional
+    public ResponseEntity<?> payForUsersOrder(UUID orderId) {
+        Map<String, Object> response = new HashMap<>();
+
+        User user = getCurrentUser();
         Order order = iOrderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
         if (!order.getUser().getId().equals(user.getId())) {
-             throw new BadRequestException("Order does not belong to the current user");
+            throw new BadRequestException("Order does not belong to the current user");
         }
 
-        if (order.getStatus() != OrderStatus.CREATED) {
-            throw new BadRequestException("Order is already paid or processed");
-        }
-
-        BigDecimal totalOrderPrice = order.getOrderProducts().stream()
-                .map(OrderProduct::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        if (totalOrderPrice.compareTo(BigDecimal.ZERO) > 0) {
-            processPayment(user, order, totalOrderPrice);
-            order.setStatus(OrderStatus.PAID);
-            iOrderRepository.save(order);
-        }
-
-        Map<String, String> response = new HashMap<>();
-        response.put("pay_order", "true");
-        return ResponseEntity.ok(response);
-    }
-
-    private User getUser() {
-        return iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-    }
-
-    private Cart getCart(User user) {
-        return iCartRepository.findByUserLoginWithLock(user.getLogin())
-                .orElseThrow(() -> new NotFoundException("Cart not found"));
-    }
-
-    private void validateCart(Cart cart) {
-        if (cart.getCartProducts() == null || cart.getCartProducts().isEmpty()) {
-            throw new BadRequestException("Cart is empty");
-        }
-    }
-
-    private static class AvailabilityResult {
-        List<OrderProduct> orderProducts = new ArrayList<>();
-        List<Map<String, Object>> unavailableProducts = new ArrayList<>();
-        boolean hasAvailableProducts = false;
-    }
-
-    private AvailabilityResult checkAvailability(Cart cart) {
-        AvailabilityResult result = new AvailabilityResult();
-
-        for (CartProduct cartProduct : cart.getCartProducts()) {
-            Part partFromDb = iPartRepository.findById(cartProduct.getPart().getId())
-                    .orElseGet(() -> {
-                        Part emptyPart = new Part();
-                        emptyPart.setStorageCount(0);
-                        return emptyPart;
-                    });
-            Integer requestedCount = cartProduct.getPartsCount();
-            Integer availableCount = partFromDb.getStorageCount();
-
-            if (availableCount != null && availableCount < requestedCount) {
-                Map<String, Object> unavailableProduct = new HashMap<>();
-                unavailableProduct.put("part_id", cartProduct.getPart().getId().toString());
-                result.unavailableProducts.add(unavailableProduct);
-            } else {
-                result.hasAvailableProducts = true;
-
-                OrderProduct orderProduct = OrderProduct.builder()
-                        .part(partFromDb)
-                        .partsCount(requestedCount)
-                        .status(BoxStatus.ORDERED)
-                        .price(partFromDb.getPrice().multiply(BigDecimal.valueOf(requestedCount)))
-                        .currency(partFromDb.getCurrency())
-                        .build();
-                result.orderProducts.add(orderProduct);
-            }
-        }
-        return result;
-    }
-
-    private BigDecimal calculateTotalOrderPrice(List<OrderProduct> orderProducts) {
-        return orderProducts.stream()
-                .map(OrderProduct::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private Order buildAndSaveOrder(User user, OrderStatus status) {
-        Long orderNumber = generateOrderNumber();
-        Order order = Order.builder()
-                .user(user)
-                .number(orderNumber)
-                .status(status)
-                .build();
-        return iOrderRepository.save(order);
-    }
-
-    private void saveOrderProducts(Order order, List<OrderProduct> orderProducts) {
-        for (OrderProduct orderProduct : orderProducts) {
-            orderProduct.setOrder(order);
-            Part part = orderProduct.getPart();
-
-            if (part.getStorageCount() != null) {
-                Integer newStorageCount = part.getStorageCount() - orderProduct.getPartsCount();
-                part.setStorageCount(newStorageCount);
-                iPartRepository.save(part);
-            }
-
-            iOrderProductRepository.save(orderProduct);
-        }
-    }
-
-    private void processPayment(User user, Order order, BigDecimal amount) {
-        BalanceOperationDto balanceOperation = new BalanceOperationDto();
-        balanceOperation.setUserId(user.getId().toString());
-        balanceOperation.setAmount(amount);
-        balanceOperation.setOperationType(BalanceOperationType.PAYMENT);
-        balanceOperation.setDescription("Payment for order #" + order.getNumber());
-        balanceService.processBalance(balanceOperation);
+        return payForOrder(order, response);
     }
 
     /**
-     * Updates order status (admin only)
-     * @param id order ID
-     * @param order the Order object containing updated fields
-     * @return ResponseEntity with a success/error message
-     * @throws NotFoundException if order not found
-     * @throws BadRequestException if data to update is invalid
-     */
-    @Transactional
-    public ResponseEntity<?> updateOrder(UUID id, Order order) {
-        Map<String, String> response = new HashMap<>();
-        
-        Order orderFromDb = iOrderRepository.findByIdWithLock(id)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
-
-        if (order.getStatus() != null) {
-            if (Set.of(OrderStatus.PROCESSING, OrderStatus.CANCELLED, OrderStatus.PAID).contains(order.getStatus())) {
-                orderFromDb.setStatus(order.getStatus());
-                log.info("Order's status with id {} has been updated -> {}",
-                        id, authService.getAuthInfo().getPrincipal());
-            } else {
-                throw new BadRequestException("Order's status can be changed only to PAID, PROCESSING or CANCELLED");
-            }
-        }
-
-        iOrderRepository.save(orderFromDb);
-        response.put("update_order", "true");
-
-        if (order.getStatus() != null) {
-            updateOrderProductsAfterOrderUpdate(orderFromDb);
-        }
-        
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Updates order product
+     * Updates an order product with new values.
+     * <p>
+     * Validates and applies updates to:
+     * - Status (must follow transition rules)
+     * - Number (must be >= 100000 and unique)
+     * - Parts count (must be positive)
+     * <p>
+     * After status update, automatically updates parent order status
+     * based on all products' statuses.
+     *
      * @param id order product ID
      * @param orderProduct the Order product object containing updated fields
-     * @return ResponseEntity with a success/error message
-     * @throws BadRequestException if found validation errors
+     * @return ResponseEntity with update status
+     * @throws NotFoundException if order product not found
+     * @throws BadRequestException if validation fails
      */
     @Transactional
     public ResponseEntity<?> updateOrderProduct(UUID id, OrderProduct orderProduct) {
         Map<String, String> response = new HashMap<>();
-        
+
         OrderProduct orderProductFromDb = iOrderProductRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Order product not found"));
 
@@ -293,104 +196,389 @@ public class OrderService {
         }
 
         if (orderProduct.getStatus() != null) {
-            if (!orderProductFromDb.getStatus().getNextStatuses().contains(orderProduct.getStatus())) {
+            if (!isTransitionAllowed(orderProductFromDb.getStatus(), orderProduct.getStatus())) {
                 throw new BadRequestException("Order product's status transition not allowed");
             }
 
+            if (orderProduct.getStatus().equals(BoxStatus.DELIVERED) && !orderProductFromDb.getOrder().getPaid()) {
+                throw new BadRequestException("Order is not paid");
+            }
+
             orderProductFromDb.setStatus(orderProduct.getStatus());
-            log.info("Order product's status with id {} has been updated -> {}",
-                    id, authService.getAuthInfo().getPrincipal());
+            log.info("Order product's status with id {} has been updated to {} -> {}",
+                    id, orderProduct.getStatus(), authService.getAuthInfo().getPrincipal());
         }
 
         if (orderProduct.getNumber() != null && !orderProduct.getNumber().equals(orderProductFromDb.getNumber())) {
             orderProductFromDb.setNumber(orderProduct.getNumber());
-            log.info("Order product's number with id {} has been updated -> {}",
-                    id, authService.getAuthInfo().getPrincipal());
+            log.info("Order product's number with id {} has been updated to {} -> {}",
+                    id, orderProduct.getNumber(), authService.getAuthInfo().getPrincipal());
         }
 
         if (orderProduct.getPartsCount() != null
                 && !orderProduct.getPartsCount().equals(orderProductFromDb.getPartsCount())) {
             orderProductFromDb.setPartsCount(orderProduct.getPartsCount());
-            log.info("Order product's part's count with id {} has been updated -> {}",
-                    id, authService.getAuthInfo().getPrincipal());
+            log.info("Order product's part's count with id {} has been updated to {} -> {}",
+                    id, orderProduct.getPartsCount(), authService.getAuthInfo().getPrincipal());
         }
 
         iOrderProductRepository.save(orderProductFromDb);
         response.put("update_order_product", "true");
 
         if (orderProduct.getStatus() != null) {
-            updateOrderAfterOrderProductUpdate(orderProductFromDb.getOrder());
+            updateOrderStatus(orderProductFromDb.getOrder());
+            iOrderRepository.save(orderProductFromDb.getOrder());
         }
-        
+
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Update the order status if all order products were delivered
-     * @param order order an object to update
+     * Completes an order that is ready for pickup.
+     * <p>
+     * Requirements:
+     * - Order must be in READY_FOR_PICKUP status
+     * - Order must be paid
+     * <p>
+     * Effects:
+     * - Order status becomes COMPLETED
+     * - All order products become DELIVERED
+     *
+     * @param orderId UUID of the order to complete
+     * @return ResponseEntity with completion status
+     * @throws NotFoundException if order not found
+     * @throws BadRequestException if order is not ready or not paid
      */
-    private void updateOrderAfterOrderProductUpdate(Order order) {
+    @Transactional
+    public ResponseEntity<?> completeOrder(UUID orderId) {
+        Map<String, Object> response = new HashMap<>();
+
+        Order order = iOrderRepository.findByIdWithLock(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        if (!order.getStatus().equals(OrderStatus.READY_FOR_PICKUP)) {
+            throw new BadRequestException("Completing order is not allowed: it is not ready");
+        }
+
+        if (!order.getPaid()) {
+            throw new BadRequestException("Completing order is not allowed: it is not paid");
+        }
+
+        order.setStatus(OrderStatus.COMPLETED);
+        updateOrderProductsStatus(order);
+
+        iOrderRepository.save(order);
+        iOrderProductRepository.saveAll(order.getOrderProducts());
+        response.put("complete_order", "true");
+        log.info("Order {} was completed", order.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Cancels an order belonging to the current user.
+     * <p>
+     * User cancellation is only allowed for orders in:
+     * - CONFIRMATION_WAITING
+     * - PAYMENT_WAITING
+     *
+     * @param orderId UUID of the order to cancel
+     * @return ResponseEntity with cancellation status
+     * @throws NotFoundException if order not found
+     * @throws BadRequestException if order doesn't belong to user or cannot be cancelled
+     */
+    @Transactional
+    public ResponseEntity<?> cancelUsersOrder(UUID orderId) {
+        Map<String, Object> response = new HashMap<>();
+
+        User user = getCurrentUser();
+        Order order = iOrderRepository.findByIdWithLock(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new BadRequestException("Order does not belong to the current user");
+        }
+
+        if (!Set.of(OrderStatus.CONFIRMATION_WAITING, OrderStatus.PAYMENT_WAITING).contains(order.getStatus())) {
+            throw new BadRequestException("Cancelling order is not allowed");
+        }
+
+        return cancelOrder(order, response);
+    }
+
+    /**
+     * Cancels an order at any stage.
+     *
+     * @param orderId UUID of the order to cancel
+     * @return ResponseEntity with cancellation status
+     * @throws NotFoundException if order not found
+     */
+    @Transactional
+    public ResponseEntity<?> cancelOrder(UUID orderId) {
+        Map<String, Object> response = new HashMap<>();
+
+        Order order = iOrderRepository.findByIdWithLock(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        return cancelOrder(order, response);
+    }
+
+    /**
+     * Updates the order status based on its products' statuses.
+     * <p>
+     * Status determination rules:
+     * - All products CANCELLED → Order CANCELLED
+     * - All products >= SHIPPED → Order READY_FOR_PICKUP
+     * - All products >= ARRIVED → Order IN_WAREHOUSE
+     * - Any product ON_WAY → Order ON_WAY
+     * <p>
+     * This method only updates the status object without saving to database.
+     *
+     * @param order order object to update
+     */
+    public void updateOrderStatus(Order order) {
         List<OrderProduct> orderProducts = order.getOrderProducts();
 
+        boolean allCanceled = orderProducts.stream()
+                .allMatch(op -> op.getStatus().equals(BoxStatus.CANCELLED));
         boolean allDelivered = orderProducts.stream()
-                .allMatch(op ->
-                        Set.of(BoxStatus.DELIVERED, BoxStatus.CANCELLED, BoxStatus.RETURNED).contains(op.getStatus())
-                );
+                .allMatch(op -> op.getStatus().compare(BoxStatus.DELIVERED) >= 0);
+        boolean allShipped = orderProducts.stream()
+                .allMatch(op -> op.getStatus().compare(BoxStatus.SHIPPED) >= 0);
+        boolean allInWarehouse = orderProducts.stream()
+                .allMatch(op -> op.getStatus().compare(BoxStatus.ARRIVED) >= 0);
+        boolean anyOnWay = orderProducts.stream()
+                .anyMatch(op -> op.getStatus().equals(BoxStatus.ON_WAY));
 
-        if (allDelivered && order.getStatus() != OrderStatus.COMPLETED) {
-            order.setStatus(OrderStatus.COMPLETED);
-            iOrderRepository.save(order);
-            log.info("Order {} automatically completed as all products are delivered", order.getNumber());
+        if (allCanceled) {
+            order.setStatus(OrderStatus.CANCELLED);
+        }
+        else if (allShipped) {
+            order.setStatus(OrderStatus.READY_FOR_PICKUP);
+        }
+        else if (allInWarehouse) {
+            order.setStatus(OrderStatus.IN_WAREHOUSE);
+        }
+        else if (anyOnWay) {
+            order.setStatus(OrderStatus.ON_WAY);
         }
     }
 
     /**
-     * Update order products status if the order was cancelled
-     * @param order order an object to update
+     * Builds and saves a new order with generated number and initial status.
+     *
+     * @param user the user who owns the order
+     * @return saved Order entity
      */
-    private void updateOrderProductsAfterOrderUpdate(Order order) {
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            List<OrderProduct> orderProducts = order.getOrderProducts();
+    private Order buildAndSaveOrder(User user) {
+        Long orderNumber = generateOrderNumber();
 
-            for (OrderProduct orderProduct : orderProducts) {
-                BoxStatus newStatus = determineCancellationStatus(orderProduct);
+        OrderStatus status = user.getCanPayLater() ? OrderStatus.CONFIRMATION_WAITING : OrderStatus.PAYMENT_WAITING;
 
-                if (orderProduct.getStatus() != newStatus) {
-                    orderProduct.setStatus(newStatus);
-                    iOrderProductRepository.save(orderProduct);
-                    log.info("Order product {} status automatically updated to {} due to order cancellation",
-                            orderProduct.getId(), newStatus);
-                }
+        Order order = Order.builder()
+                .user(user)
+                .number(orderNumber)
+                .status(status)
+                .paid(false)
+                .build();
+        return iOrderRepository.save(order);
+    }
+
+    /**
+     * Creates and saves order products from cart items.
+     *
+     * @param order the order to associate products with
+     * @param cart the cart containing the products
+     */
+    private void saveOrderProducts(Order order, Cart cart) {
+        List<OrderProduct> orderProducts = new ArrayList<>();
+
+        for (CartProduct cartProduct : cart.getCartProducts()) {
+            OrderProduct orderProduct = OrderProduct.builder()
+                    .order(order)
+                    .part(cartProduct.getPart())
+                    .partsCount(cartProduct.getPartsCount())
+                    .status(BoxStatus.CREATED)
+                    .price(BigDecimal.ZERO)                 // TODO: price settlement
+                    .build();
+
+            orderProducts.add(orderProduct);
+        }
+
+        iOrderProductRepository.saveAll(orderProducts);
+    }
+
+    /**
+     * Checks if a transition from one BoxStatus to another is allowed.
+     * <p>
+     * Allowed transitions:
+     * - TO_ORDER → ON_WAY (ordered from supplier)
+     * - ARRIVED/IN_WAREHOUSE → SHIPPED (shipped to customer)
+     * - CREATED → CANCELLED (cancel before processing)
+     * - DELIVERED → RETURNED (customer return)
+     * - SHIPPED → DELIVERED (delivery confirmed)
+     *
+     * @param from current status
+     * @param to target status
+     * @return true if transition is allowed, false otherwise
+     */
+    private boolean isTransitionAllowed(BoxStatus from, BoxStatus to) {
+        boolean isOrderingTransition = from.equals(BoxStatus.TO_ORDER) && to.equals(BoxStatus.ON_WAY);
+
+        boolean isShippingTransition = (from.equals(BoxStatus.ARRIVED) || from.equals(BoxStatus.IN_WAREHOUSE))
+                && to.equals(BoxStatus.SHIPPED);
+
+        boolean isCancellingTransition = from.equals(BoxStatus.CREATED) && to.equals(BoxStatus.CANCELLED);
+
+        boolean isReturningTransition = from.equals(BoxStatus.DELIVERED) && to.equals(BoxStatus.RETURNED);
+
+        boolean isDeliveringTransition = from.equals(BoxStatus.SHIPPED) && to.equals(BoxStatus.DELIVERED);
+
+        return isOrderingTransition || isShippingTransition || isCancellingTransition || isReturningTransition
+                || isDeliveringTransition;
+    }
+
+    /**
+     * Retrieves the currently authenticated user.
+     *
+     * @return User entity
+     * @throws NotFoundException if user not found
+     */
+    private User getCurrentUser() {
+        return iUserRepository.findByLogin(authService.getAuthInfo().getPrincipal().toString())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    /**
+     * Updates order products statuses based on order status changes.
+     * <p>
+     * Status mappings:
+     * - ORDERED → Check availability: TO_ORDER or IN_WAREHOUSE
+     * - COMPLETED → DELIVERED
+     * - CANCELLED → CANCELLED
+     *
+     * @param order the order whose products need updating
+     */
+    private void updateOrderProductsStatus(Order order) {
+        for (OrderProduct orderProduct : order.getOrderProducts()) {
+            switch (order.getStatus()) {
+                case ORDERED:
+                    Integer requestedCount = orderProduct.getPartsCount();
+                    Integer storageCount = orderProduct.getPart().getStorageCount();
+
+                    if (storageCount == null || requestedCount > storageCount) {
+                        orderProduct.setStatus(BoxStatus.TO_ORDER);
+                    } else {
+                        orderProduct.setStatus(BoxStatus.IN_WAREHOUSE);
+
+                        Part part = orderProduct.getPart();
+                        part.setStorageCount(storageCount - requestedCount);
+                        iPartRepository.save(part);
+                    }
+                    break;
+
+                case COMPLETED:
+                    orderProduct.setStatus(BoxStatus.DELIVERED);
+                    break;
+
+                case CANCELLED:
+                    orderProduct.setStatus(BoxStatus.CANCELLED);
+                    break;
+
+                default:
+                    break;
             }
         }
     }
 
     /**
-     * Determines cancellation status for orderProduct in case of order cancellation
-     * @param orderProduct orderProduct object to check
-     * @return necessary status
+     * Processes payment for an order by deducting amount from user's balance.
+     *
+     * @param order the order being paid for
+     * @param amount the payment amount
      */
-    private BoxStatus determineCancellationStatus(OrderProduct orderProduct) {
-        BoxStatus currentStatus = orderProduct.getStatus();
-
-        if (currentStatus == BoxStatus.CANCELLED || currentStatus == BoxStatus.RETURNED) {
-            return currentStatus;
-        }
-
-        if (currentStatus.getNextStatuses().contains(BoxStatus.CANCELLED)) {
-            return BoxStatus.CANCELLED;
-        }
-
-        if (currentStatus.getNextStatuses().contains(BoxStatus.RETURNED)) {
-            return BoxStatus.RETURNED;
-        }
-
-        return currentStatus;
+    private void processPayment(Order order, BigDecimal amount) {
+        BalanceOperationDto balanceOperation = new BalanceOperationDto();
+        balanceOperation.setUserId(order.getUser().getId().toString());
+        balanceOperation.setAmount(amount);
+        balanceOperation.setOperationType(BalanceOperationType.PAYMENT);
+        balanceOperation.setDescription("Payment for order № " + order.getNumber());
+        balanceService.processBalance(balanceOperation);
     }
 
     /**
-     * Generates unique order number
-     * @return generated order number
+     * Updates order status after confirmation or payment.
+     * <p>
+     * This method:
+     * 1. Changes status from waiting state to ORDERED
+     * 2. Updates product statuses based on availability
+     * 3. Recalculates overall order status
+     *
+     * @param order the order to update
+     */
+    private void updateOrderStatusAfterConfirmation(Order order) {
+        if (Set.of(OrderStatus.CONFIRMATION_WAITING, OrderStatus.PAYMENT_WAITING).contains(order.getStatus())) {
+            order.setStatus(OrderStatus.ORDERED);
+            updateOrderProductsStatus(order);
+            updateOrderStatus(order);
+
+            iOrderProductRepository.saveAll(order.getOrderProducts());
+            iOrderRepository.save(order);
+        }
+    }
+
+    /**
+     * Pays for an existing order.
+     *
+     * @param order The order to pay for
+     * @param response Map to collect validation error messages
+     * @return ResponseEntity with success/error message
+     * @throws BadRequestException if order is already paid
+     */
+    private ResponseEntity<?> payForOrder(Order order, Map<String, Object> response) {
+        if (order.getPaid()) {
+            throw new BadRequestException("Order is already paid");
+        }
+
+        BigDecimal totalOrderPrice = order.getOrderProducts().stream()
+                .map(OrderProduct::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        processPayment(order, totalOrderPrice);
+        order.setPaid(true);
+        updateOrderStatusAfterConfirmation(order);
+
+        response.put("pay_order", "true");
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Cancels an order.
+     *
+     * @param order the order to cancel
+     * @param response Map to collect response messages
+     * @return ResponseEntity with cancellation status
+     */
+    private ResponseEntity<?> cancelOrder(Order order, Map<String, Object> response) {
+        order.setStatus(OrderStatus.CANCELLED);
+        updateOrderProductsStatus(order);
+
+        iOrderRepository.save(order);
+        iOrderProductRepository.saveAll(order.getOrderProducts());
+        response.put("cancel_order", "true");
+        log.info("Order {} was cancelled", order.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Generates a unique order number.
+     * Finds the maximum existing order number and increments by 1.
+     * If no orders exist, starts from START_ORDER_NUMBER.
+     *
+     * @return generated unique order number
      */
     private Long generateOrderNumber() {
         Long maxNumber = iOrderRepository.findAll().stream()
@@ -398,7 +586,7 @@ public class OrderService {
                 .filter(Objects::nonNull)
                 .max(Long::compare)
                 .orElse(START_ORDER_NUMBER - 1);
-        
+
         return maxNumber + 1;
     }
 }

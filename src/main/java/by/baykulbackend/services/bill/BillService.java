@@ -2,11 +2,15 @@ package by.baykulbackend.services.bill;
 
 import by.baykulbackend.database.dao.bill.Bill;
 import by.baykulbackend.database.dao.bill.BillStatus;
+import by.baykulbackend.database.dao.order.BoxStatus;
+import by.baykulbackend.database.dao.order.Order;
 import by.baykulbackend.database.dao.order.OrderProduct;
 import by.baykulbackend.database.repository.bill.IBillRepository;
 import by.baykulbackend.database.repository.order.IOrderProductRepository;
+import by.baykulbackend.database.repository.order.IOrderRepository;
 import by.baykulbackend.exceptions.BadRequestException;
 import by.baykulbackend.exceptions.NotFoundException;
+import by.baykulbackend.services.order.OrderService;
 import by.baykulbackend.services.user.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +31,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BillService {
     private final IOrderProductRepository iOrderProductRepository;
+    private final IOrderRepository iOrderRepository;
     private final IBillRepository iBillRepository;
     private final AuthService authService;
+    private final OrderService orderService;
 
     private static final Long START_BILL_NUMBER = 10000L;
 
@@ -59,7 +65,10 @@ public class BillService {
                     .collect(Collectors.toSet());
 
             for (UUID orderProductId : orderProductIdSet) {
-                iOrderProductRepository.findByBillIsNullAndId(orderProductId).ifPresentOrElse(
+                iOrderProductRepository.findByBillIsNullAndIdAndStatusIn(
+                        orderProductId,
+                        List.of(BoxStatus.ON_WAY, BoxStatus.TO_ORDER)
+                ).ifPresentOrElse(
                         op -> {
                             op.setBill(newBill);
                             orderProducts.add(op);
@@ -109,7 +118,15 @@ public class BillService {
         }
 
         billFromDb.setStatus(BillStatus.APPLIED);
+        billFromDb.getOrderProducts().forEach(op -> op.setStatus(BoxStatus.ARRIVED));
+
+        iOrderProductRepository.saveAll(billFromDb.getOrderProducts());
         iBillRepository.save(billFromDb);
+
+        List<Order> ordersToUpdate = billFromDb.getOrderProducts().stream().map(OrderProduct::getOrder).toList();
+        ordersToUpdate.forEach(orderService::updateOrderStatus);
+        iOrderRepository.saveAll(ordersToUpdate);
+
         response.put("update_bill", "true");
         log.info("Bill {} applied -> {}", billId, authService.getAuthInfo().getPrincipal());
 

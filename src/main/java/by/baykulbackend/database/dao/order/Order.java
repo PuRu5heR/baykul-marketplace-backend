@@ -83,6 +83,17 @@ public class Order {
     private OrderStatus status;
 
     @Schema(
+            description = "Is order paid",
+            accessMode = Schema.AccessMode.READ_ONLY,
+            example = "true",
+            defaultValue = "false",
+            allowableValues = {"true", "false"}
+    )
+    @Column(name = "paid", nullable = false)
+    @JsonView({Views.OrderView.Get.class})
+    private Boolean paid;
+
+    @Schema(
             description = "User associated with this order",
             accessMode = Schema.AccessMode.READ_ONLY,
             example = "{\"id\": \"123e4567-e89b-12d3-a456-426614174001\", \"login\": \"john_doe\"}"
