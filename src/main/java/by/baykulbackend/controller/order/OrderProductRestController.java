@@ -118,10 +118,12 @@ public class OrderProductRestController {
     @GetMapping("/withoutBill")
     @PreAuthorize("hasAnyAuthority('all-orders:read')")
     @JsonView(Views.OrderProductView.Get.class)
-    public List<OrderProduct> getAllOrderedWithoutBill(
+    public List<OrderProduct> getAllNotOrdered(
             @PageableDefault(size = 50, sort = "createdTs", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return iOrderProductRepository.findAllByBillIsNull(pageable).stream().toList();
+        return iOrderProductRepository
+                .findAllByBillIsNullAndStatusIn(List.of(BoxStatus.ON_WAY, BoxStatus.TO_ORDER), pageable)
+                .stream().toList();
     }
 
     @Operation(
@@ -205,13 +207,11 @@ public class OrderProductRestController {
                     Updates an order product. Requires all-orders:write permission.
                     
                     **Available status transitions for BoxStatus:**
-                    - From ORDERED → IN_WAREHOUSE, CANCELLED
-                    - From IN_WAREHOUSE → ON_WAY, CANCELLED
-                    - From ON_WAY → ARRIVED, RETURNED
-                    - From ARRIVED → DELIVERED, RETURNED
+                    - From CREATED → CANCELLED
+                    - From TO_ORDER → ON_WAY
+                    - From ARRIVED, IN_WAREHOUSE → SHIPPED
+                    - From SHIPPED → DELIVERED (id order is paid)
                     - From DELIVERED → RETURNED
-                    - From RETURNED → No further transitions (terminal state)
-                    - From CANCELLED → No further transitions (terminal state)
                     
                     The following fields can be updated:
                     - `status` - must follow the transition rules above
@@ -230,7 +230,7 @@ public class OrderProductRestController {
                                     value = """
                                             {
                                               "number": 100001,
-                                              "status": "IN_WAREHOUSE",
+                                              "status": "SHIPPED",
                                               "partsCount": 5
                                             }
                                             """

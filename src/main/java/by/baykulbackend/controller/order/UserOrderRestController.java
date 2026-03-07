@@ -1,6 +1,5 @@
 package by.baykulbackend.controller.order;
 
-import by.baykulbackend.database.dto.order.CreateOrderRequestDto;
 import by.baykulbackend.database.dao.order.Order;
 import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.exceptions.NotFoundException;
@@ -67,7 +66,7 @@ public class UserOrderRestController {
                                                 "createdTs": "2024-01-15T10:30:00",
                                                 "updatedTs": "2024-01-20T14:45:30",
                                                 "number": 100001,
-                                                "status": "CREATED",
+                                                "status": "ORDERED",
                                                 "user": {
                                                   "id": "123e4567-e89b-12d3-a456-426614174000",
                                                   "login": "john_doe"
@@ -76,7 +75,7 @@ public class UserOrderRestController {
                                                   {
                                                     "id": "30e9276f-ccce-45a7-9c28-e1ce22254eea",
                                                     "number": null,
-                                                    "status": "ORDERED",
+                                                    "status": "TO_ORDER",
                                                     "part": {
                                                       "id": "63e9276f-ccce-45a7-9c28-e1ce24354eea",
                                                       "article": "2405947",
@@ -165,7 +164,7 @@ public class UserOrderRestController {
                                               "createdTs": "2024-01-15T10:30:00",
                                               "updatedTs": "2024-01-20T14:45:30",
                                               "number": 100001,
-                                              "status": "CREATED",
+                                              "status": "ORDERED",
                                               "user": {
                                                 "id": "123e4567-e89b-12d3-a456-426614174000",
                                                 "login": "john_doe"
@@ -174,7 +173,7 @@ public class UserOrderRestController {
                                                 {
                                                   "id": "30e9276f-ccce-45a7-9c28-e1ce22254eea",
                                                   "number": null,
-                                                  "status": "ORDERED",
+                                                  "status": "TO_ORDER",
                                                   "part": {
                                                     "id": "63e9276f-ccce-45a7-9c28-e1ce24354eea",
                                                     "article": "2405947",
@@ -368,13 +367,13 @@ public class UserOrderRestController {
     })
     @PostMapping("/create")
     @PreAuthorize("hasAnyAuthority('my-orders:write')")
-    public ResponseEntity<?> create(@RequestBody CreateOrderRequestDto request) {
-        return orderService.createOrderFromCart(request);
+    public ResponseEntity<?> create() {
+        return orderService.createOrderFromCart();
     }
 
     @Operation(
             summary = "Pay for an existing order",
-            description = "Processes payment for an order that was created with 'payLater' option. " +
+            description = "Processes payment for user's order that was created" +
                     "Requires my-orders:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
@@ -410,11 +409,141 @@ public class UserOrderRestController {
                     )
             )
     })
-    @PostMapping("/{id}/pay")
+    @PostMapping("/pay")
     @PreAuthorize("hasAnyAuthority('my-orders:write')")
-    public ResponseEntity<?> payForOrder(
-            @Parameter(description = "UUID of the order to pay for", required = true)
-            @PathVariable UUID id) {
-        return orderService.payForOrder(id);
+    public ResponseEntity<?> pay(
+            @Parameter(
+                    description = "UUID of the order to pay for",
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
+            )
+            @RequestParam UUID id) {
+        return orderService.payForUsersOrder(id);
+    }
+
+    @Operation(
+            summary = "Cancel user's order",
+            description = """
+                    Cancels an order belonging to the current user.
+                    
+                    **Cancellation rules for users:**
+                    - Order must belong to the current user
+                    - Order can only be cancelled if it's in:
+                      - CONFIRMATION_WAITING (waiting for user confirmation)
+                      - PAYMENT_WAITING (waiting for payment)
+                    
+                    After these stages, users cannot cancel orders themselves
+                    (requires administrator intervention).
+                    
+                    When cancelled:
+                    - All order products are marked as CANCELLED
+                    - Order status becomes CANCELLED
+                    
+                    Requires my-orders:write permission.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Order cancelled successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Cancel order success example",
+                                    value = """
+                                            {
+                                              "cancel_order": "true"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = """
+                            Bad request. Possible reasons:
+                            - Order does not belong to current user
+                            - Order is not in a cancellable state (only CONFIRMATION_WAITING or PAYMENT_WAITING can be cancelled by user)
+                            """,
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Not owner example",
+                                            value = """
+                                                    {
+                                                      "error": "Order does not belong to the current user"
+                                                    }
+                                                    """),
+                                    @ExampleObject(
+                                            name = "Cannot cancel example",
+                                            value = """
+                                                    {
+                                                      "error": "Cancelling order is not allowed"
+                                                    }
+                                                    """)
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Order not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "Order not found"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PostMapping("/cancel")
+    @PreAuthorize("hasAnyAuthority('my-orders:write')")
+    public ResponseEntity<?> cancel(
+            @Parameter(
+                    description = "UUID of the order to pay for",
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
+            )
+            @RequestParam UUID id
+    ) {
+        return orderService.cancelUsersOrder(id);
     }
 }

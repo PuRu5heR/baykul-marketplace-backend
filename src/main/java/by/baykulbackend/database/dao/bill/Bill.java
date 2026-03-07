@@ -32,7 +32,7 @@ public class Bill {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    @JsonView({Views.BillView.Get.class, Views.BillView.Post.class, Views.BillView.Patch.class})
+    @JsonView({Views.BillView.Get.class, Views.BillView.Patch.class})
     private UUID id;
 
     @Schema(
@@ -77,11 +77,11 @@ public class Bill {
     private BillStatus status;
 
     @Schema(
-            description = "List of order products associated applied in this bill",
+            description = "List of order products associated with this bill",
             accessMode = Schema.AccessMode.READ_ONLY
     )
     @OneToMany(mappedBy = "bill", fetch = FetchType.LAZY)
-    @JsonView(Views.OrderFullView.class)
+    @JsonView({Views.BillFullView.class, Views.BillView.Post.class})
     private List<OrderProduct> orderProducts;
 
     @Override

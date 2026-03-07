@@ -64,14 +64,14 @@ public class OrderRestController {
                                                 "createdTs": "2024-01-15T10:30:00",
                                                 "updatedTs": "2024-01-20T14:45:30",
                                                 "number": 100001,
-                                                "status": "CREATED"
+                                                "status": "ORDERED"
                                               },
                                               {
                                                 "id": "522t4767-e89b-12d3-a456-426614174563",
                                                 "createdTs": "2024-01-16T11:30:00",
                                                 "updatedTs": "2024-01-21T15:45:30",
                                                 "number": 100002,
-                                                "status": "PROCESSING"
+                                                "status": "ON_WAY"
                                               }
                                             ]
                                             """
@@ -141,7 +141,7 @@ public class OrderRestController {
                                               "createdTs": "2024-01-15T10:30:00",
                                               "updatedTs": "2024-01-20T14:45:30",
                                               "number": 100001,
-                                              "status": "CREATED",
+                                              "status": "ORDERED",
                                               "user": {
                                                 "id": "123e4567-e89b-12d3-a456-426614174000",
                                                 "login": "john_doe",
@@ -157,7 +157,7 @@ public class OrderRestController {
                                                 {
                                                   "id": "30e9276f-ccce-45a7-9c28-e1ce22254eea",
                                                   "number": null,
-                                                  "status": "ORDERED",
+                                                  "status": "TO_ORDER",
                                                   "part": {
                                                     "id": "63e9276f-ccce-45a7-9c28-e1ce24354eea",
                                                     "article": "2405947",
@@ -241,49 +241,31 @@ public class OrderRestController {
     }
 
     @Operation(
-            summary = "Update order",
+            summary = "Confirm an order",
             description = """
-                    Updates an order. Requires all-orders:write permission.
-                    
-                    **Available status transitions:**
-                    - From CREATED → PAID, CANCELLED
-                    - From PAID → PROCESSING, CANCELLED
-                    - From PROCESSING → COMPLETED, CANCELLED
-                    - From COMPLETED → No further transitions (terminal state)
-                    - From CANCELLED → No further transitions (terminal state)
-                    
-                    Only the status field can be updated through this endpoint.
-                    """,
-            security = @SecurityRequirement(name = "bearerAuth"),
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Order data to update",
-                    required = true,
-                    content = @Content(
-                            schema = @Schema(implementation = Order.class),
-                            examples = @ExampleObject(
-                                    name = "Update order request example",
-                                    summary = "Update order status",
-                                    value = """
-                                            {
-                                              "status": "PAID"
-                                            }
-                                            """
-                            )
-                    )
-            )
+                        Confirms an order that is waiting for confirmation.
+                        
+                        This operation is used for orders created by users with the 'pay-later' option.
+                        When confirmed, the order status changes from CONFIRMATION_WAITING to ORDERED,
+                        and product availability is checked:
+                        - Products with sufficient stock → IN_WAREHOUSE
+                        - Products with insufficient stock → TO_ORDER
+                        
+                        Requires all-orders:write permission.
+                        """,
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Order updated successfully",
+                    description = "Order confirmed successfully",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Update order success example",
-                                    summary = "Order updated successfully",
+                                    name = "Confirm order success example",
                                     value = """
                                             {
-                                              "update_order": "true"
+                                              "confirmation": "true"
                                             }
                                             """
                             )
@@ -291,20 +273,16 @@ public class OrderRestController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = """
-                            Bad request - invalid order data. Possible reasons:
-                            - Invalid status value provided
-                            """,
+                    description = "Bad request - order is not in CONFIRMATION_WAITING status",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             examples = @ExampleObject(
-                                    name = "Invalid transition example",
-                                    summary = "Invalid status transition",
+                                    name = "Bad request example",
                                     value = """
-                                                    {
-                                                      "error": "Order's status can be changed only to PAID, PROCESSING or CANCELLED",
-                                                    }
-                                                    """
+                                            {
+                                              "error": "No confirmation needed"
+                                            }
+                                            """
                             )
                     )
             ),
@@ -356,16 +334,332 @@ public class OrderRestController {
                     )
             )
     })
-    @PatchMapping
+    @PostMapping("/confirm")
     @PreAuthorize("hasAnyAuthority('all-orders:write')")
-    public ResponseEntity<?> update(
+    public ResponseEntity<?> confirm(
             @Parameter(
-                    description = "UUID of the order to update",
+                    description = "UUID of the order to confirm",
                     required = true,
                     example = "123e4567-e89b-12d3-a456-426614174000"
             )
-            @RequestParam UUID id,
-            @RequestBody Order order) {
-        return orderService.updateOrder(id, order);
+            @RequestParam UUID id
+    ) {
+        return orderService.confirmOrder(id);
+    }
+
+    @Operation(
+            summary = "Pay for an order",
+            description = """
+                        Processes payment for an order.
+                        
+                        After successful payment if order was not confirmed:
+                        - Order status changes to ORDERED
+                        - Order is marked as paid
+                        - Product availability is checked and statuses are updated
+                        
+                        Requires all-orders:write permission.
+                        """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Order paid successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Pay order success example",
+                                    value = """
+                                            {
+                                              "pay_order": "true"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad request - order already paid or in invalid status",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Bad request example",
+                                    value = """
+                                            {
+                                              "error": "Order is already paid"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Order not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "Order not found"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PostMapping("/pay")
+    @PreAuthorize("hasAnyAuthority('all-orders:write')")
+    public ResponseEntity<?> pay(
+            @Parameter(
+                    description = "UUID of the order to pay for",
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
+            )
+            @RequestParam UUID id
+    ) {
+        return orderService.payForOrder(id);
+    }
+
+    @Operation(
+            summary = "Complete an order",
+            description = """
+                        Marks an order as COMPLETED when all products are ready for pickup.
+                        
+                        **Requirements:**
+                        - Order must be in READY_FOR_PICKUP status
+                        - Order must be paid
+                        
+                        When completed:
+                        - All order products are marked as DELIVERED
+                        - Order status becomes COMPLETED
+                        
+                        Requires all-orders:write permission.
+                        """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Order completed successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Complete order success example",
+                                    value = """
+                                            {
+                                              "complete_order": "true"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad request - order not ready for pickup or not paid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Not ready example",
+                                            value = """
+                                                    {
+                                                      "error": "Completing order is not allowed: it is not ready"
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Not paid example",
+                                            value = """
+                                                    {
+                                                      "error": "Completing order is not allowed: it is not paid"
+                                                    }
+                                                    """
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Order not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "Order not found"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PostMapping("/complete")
+    @PreAuthorize("hasAnyAuthority('all-orders:write')")
+    public ResponseEntity<?> complete(
+            @Parameter(
+                    description = "UUID of the order to complete",
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
+            )
+            @RequestParam UUID id
+    ) {
+        return orderService.completeOrder(id);
+    }
+
+    @Operation(
+            summary = "Cancel an order",
+            description = """
+                        Cancels an order.
+                        
+                        **Cancellation rules:**
+                        - Order can be cancelled at any time by administrator
+                        - When cancelled, all order products are marked as CANCELLED
+                        - Order status becomes CANCELLED
+                        
+                        Requires all-orders:write permission.
+                        """,
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Order cancelled successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Cancel order success example",
+                                    value = """
+                                            {
+                                              "cancel_order": "true"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Order not found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Not found example",
+                                    value = """
+                                            {
+                                              "error": "Order not found"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PostMapping("/cancel")
+    @PreAuthorize("hasAnyAuthority('all-orders:write')")
+    public ResponseEntity<?> cancel(
+            @Parameter(
+                    description = "UUID of the order to cancel",
+                    required = true,
+                    example = "123e4567-e89b-12d3-a456-426614174001"
+            )
+            @RequestParam UUID id
+    ) {
+        return orderService.cancelOrder(id);
     }
 }
