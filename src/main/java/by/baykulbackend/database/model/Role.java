@@ -53,7 +53,7 @@ public enum Role {
             Permission.MY_BALANCE_READ,
             Permission.MY_CART_READ, Permission.MY_CART_WRITE,
             Permission.MY_ORDER_READ, Permission.MY_ORDER_WRITE,
-            Permission.CURRENCY_EXCHANGE_READ
+            Permission.CURRENCY_READ
     )),
     MANAGER(Set.of(
             Permission.PROFILE_READ, Permission.PROFILE_WRITE, Permission.USERS_READ,
@@ -62,7 +62,7 @@ public enum Role {
             Permission.MY_CART_READ, Permission.MY_CART_WRITE, Permission.ALL_CART_READ,
             Permission.MY_ORDER_READ, Permission.MY_ORDER_WRITE, Permission.ALL_ORDER_READ, Permission.ALL_ORDER_WRITE,
             Permission.ALL_BILL_READ, Permission.ALL_BILL_WRITE,
-            Permission.CURRENCY_EXCHANGE_READ, Permission.CURRENCY_EXCHANGE_WRITE
+            Permission.CURRENCY_READ, Permission.CURRENCY_WRITE
     )),
     ADMIN(Set.of(
             Permission.PROFILE_READ, Permission.PROFILE_WRITE, Permission.USERS_READ, Permission.USERS_WRITE,
@@ -71,7 +71,7 @@ public enum Role {
             Permission.MY_CART_READ, Permission.MY_CART_WRITE, Permission.ALL_CART_READ, Permission.ALL_CART_WRITE,
             Permission.MY_ORDER_READ, Permission.MY_ORDER_WRITE, Permission.ALL_ORDER_READ, Permission.ALL_ORDER_WRITE,
             Permission.ALL_BILL_READ, Permission.ALL_BILL_WRITE,
-            Permission.CURRENCY_EXCHANGE_READ, Permission.CURRENCY_EXCHANGE_WRITE
+            Permission.CURRENCY_READ, Permission.CURRENCY_WRITE
     ));
 
     private final Set<Permission> permissions;

@@ -1,5 +1,6 @@
 package by.baykulbackend.database.dto.finance;
 
+import by.baykulbackend.database.dao.finance.Currency;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -15,21 +16,19 @@ public class CurrencyExchangeDto {
             description = "Source currency code (ISO 4217)",
             requiredMode = Schema.RequiredMode.REQUIRED,
             example = "USD",
-            maxLength = 3,
-            minLength = 3
+            implementation = Currency.class
     )
     @NotNull
-    private String currencyFrom;
+    private Currency currencyFrom;
 
     @Schema(
             description = "Target currency code (ISO 4217)",
             requiredMode = Schema.RequiredMode.REQUIRED,
             example = "EUR",
-            maxLength = 3,
-            minLength = 3
+            implementation = Currency.class
     )
     @NotNull
-    private String currencyTo;
+    private Currency currencyTo;
 
     @Schema(
             description = "Exchange rate from source to target currency",

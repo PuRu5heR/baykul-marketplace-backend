@@ -1,6 +1,8 @@
 package by.baykulbackend.services.finance;
 
+import by.baykulbackend.database.dao.finance.Currency;
 import by.baykulbackend.database.dao.finance.CurrencyExchange;
+import by.baykulbackend.database.dto.finance.CurrencyDto;
 import by.baykulbackend.database.dto.finance.CurrencyExchangeDto;
 import by.baykulbackend.database.repository.finance.ICurrencyExchangeRepository;
 import by.baykulbackend.exceptions.NotFoundException;
@@ -8,16 +10,13 @@ import by.baykulbackend.services.user.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -152,8 +151,8 @@ public class CurrencyExchangeService {
      * @throws NotFoundException if exchange rate not found
      */
     @Transactional
-    public BigDecimal exchangeToRub(BigDecimal valueToExchange, String currencyFrom) {
-        return exchange(valueToExchange, currencyFrom, RUB);
+    public BigDecimal exchangeToRub(BigDecimal valueToExchange, Currency currencyFrom) {
+        return exchange(valueToExchange, currencyFrom, Currency.RUB);
     }
 
     /**
@@ -167,8 +166,8 @@ public class CurrencyExchangeService {
      * @throws NotFoundException if exchange rate not found
      */
     @Transactional
-    public BigDecimal exchange(BigDecimal valueToExchange, String currencyFrom, String currencyTo) {
-        if (!isValidExchangeRequest(valueToExchange, currencyFrom, currencyTo)) {
+    public BigDecimal exchange(BigDecimal valueToExchange, Currency currencyFrom, Currency currencyTo) {
+        if (!isValidExchangeRequest(valueToExchange)) {
             throw new IllegalArgumentException("Invalid exchange request");
         }
 
@@ -179,9 +178,29 @@ public class CurrencyExchangeService {
         CurrencyExchange currencyExchange =
                 iCurrencyExchangeRepository.findByCurrencyFromAndCurrencyTo(currencyFrom, currencyTo)
                         .orElseThrow(() -> new NotFoundException(
-                                String.format("Currency exchange not found for %s -> %s", currencyFrom, currencyTo)));
+                                String.format("Currency exchange not found for %s -> %s", currencyFrom.name(),
+                                        currencyTo.name())));
 
-        return exchange(valueToExchange, currencyExchange);
+        return valueToExchange.multiply(currencyExchange.getRate());
+    }
+
+    /**
+     * Retrieves all supported currencies with their details
+     *
+     * @return List of CurrencyDto objects containing currency codes, Russian names, and countries of use
+     */
+    public List<CurrencyDto> getAllCurrencies() {
+        List<CurrencyDto> currencies = new ArrayList<>();
+
+        for (Currency currency : Currency.values()) {
+            CurrencyDto dto = new CurrencyDto();
+            dto.setCode(currency.name());
+            dto.setRussianName(currency.getRussianName());
+            dto.setCountries(currency.getCountries());
+            currencies.add(dto);
+        }
+
+        return currencies;
     }
 
     /**
@@ -192,20 +211,6 @@ public class CurrencyExchangeService {
      * @return true if DTO is invalid, false otherwise
      */
     private boolean isNotValidCurrencyExchange(CurrencyExchangeDto currencyExchangeDto, Map<String, Object> response) {
-        if (StringUtils.isBlank(currencyExchangeDto.getCurrencyTo())
-                || StringUtils.isBlank(currencyExchangeDto.getCurrencyFrom())) {
-            response.put("error_currency", "Currency values must not be empty");
-            log.warn("Currency values must not be empty");
-            return true;
-        }
-
-        if (currencyExchangeDto.getCurrencyFrom().length() != 3
-                || currencyExchangeDto.getCurrencyTo().length() != 3) {
-            response.put("error_currency", "Currency codes must be 3 characters (ISO 4217)");
-            log.warn("Currency codes must be 3 characters (ISO 4217)");
-            return true;
-        }
-
         if (currencyExchangeDto.getRate() == null) {
             response.put("error_rate", "Rate value must not be empty");
             log.warn("Rate value must not be empty");
@@ -222,28 +227,12 @@ public class CurrencyExchangeService {
     }
 
     /**
-     * Performs currency exchange calculation
-     *
-     * @param valueToExchange amount to exchange
-     * @param currencyExchange exchange rate entity
-     * @return exchanged amount
-     */
-    private BigDecimal exchange(BigDecimal valueToExchange, CurrencyExchange currencyExchange) {
-        return valueToExchange.multiply(currencyExchange.getRate());
-    }
-
-    /**
      * Validates exchange request parameters
      *
      * @param valueToExchange amount to exchange
-     * @param currencyFrom source currency code
-     * @param currencyTo target currency code
      * @return true if request is valid, false otherwise
      */
-    private boolean isValidExchangeRequest(BigDecimal valueToExchange, String currencyFrom, String currencyTo) {
-        return valueToExchange != null
-                && valueToExchange.compareTo(BigDecimal.ZERO) > 0
-                && StringUtils.isNotBlank(currencyFrom)
-                && StringUtils.isNotBlank(currencyTo);
+    private boolean isValidExchangeRequest(BigDecimal valueToExchange) {
+        return valueToExchange != null && valueToExchange.compareTo(BigDecimal.ZERO) > 0;
     }
 }

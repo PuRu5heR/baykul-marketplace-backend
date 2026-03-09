@@ -60,24 +60,22 @@ public class CurrencyExchange {
     @Schema(
             description = "Source currency code (ISO 4217)",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            example = "USD",
-            maxLength = 3,
-            minLength = 3
+            example = "USD"
     )
     @Column(name = "currency_from", nullable = false, length = 3)
+    @Enumerated(EnumType.STRING)
     @JsonView({Views.CurrencyExchangeView.Get.class, Views.CurrencyExchangeView.Post.class})
-    private String currencyFrom;
+    private Currency currencyFrom;
 
     @Schema(
             description = "Target currency code (ISO 4217)",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            example = "EUR",
-            maxLength = 3,
-            minLength = 3
+            example = "EUR"
     )
     @Column(name = "currency_to", nullable = false, length = 3)
+    @Enumerated(EnumType.STRING)
     @JsonView({Views.CurrencyExchangeView.Get.class, Views.CurrencyExchangeView.Post.class})
-    private String currencyTo;
+    private Currency currencyTo;
 
     @Schema(
             description = "Exchange rate from source to target currency",

@@ -1,6 +1,7 @@
 package by.baykulbackend.controller.finance;
 
 import by.baykulbackend.database.dao.finance.CurrencyExchange;
+import by.baykulbackend.database.dto.finance.CurrencyDto;
 import by.baykulbackend.database.dto.finance.CurrencyExchangeDto;
 import by.baykulbackend.database.dto.security.Views;
 import by.baykulbackend.database.repository.finance.ICurrencyExchangeRepository;
@@ -36,7 +37,7 @@ public class CurrencyExchangeRestController {
     @Operation(
             summary = "Get all currency exchanges",
             description = "Retrieves all currency exchange rates from the system. " +
-                    "Requires currency-exchange:read permission.",
+                    "Requires currency:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -105,7 +106,7 @@ public class CurrencyExchangeRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('currency-exchange:read')")
+    @PreAuthorize("hasAnyAuthority('currency:read')")
     @GetMapping
     @JsonView(Views.CurrencyExchangeView.Get.class)
     public List<CurrencyExchange> getAll() {
@@ -115,7 +116,7 @@ public class CurrencyExchangeRestController {
     @Operation(
             summary = "Get currency exchange by ID",
             description = "Retrieves a specific currency exchange rate by UUID. " +
-                    "Requires currency-exchange:read permission.",
+                    "Requires currency:read permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -189,7 +190,7 @@ public class CurrencyExchangeRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('currency-exchange:read')")
+    @PreAuthorize("hasAnyAuthority('currency:read')")
     @JsonView(Views.CurrencyExchangeView.Get.class)
     @GetMapping("/id")
     public CurrencyExchange getOne(
@@ -204,10 +205,88 @@ public class CurrencyExchangeRestController {
     }
 
     @Operation(
+            summary = "Get all available currencies",
+            description = "Retrieves list of all supported currencies with their details. " +
+                    "Returns currency codes, Russian names, and countries of use. " +
+                    "Requires currency:read permission.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "List of currencies retrieved successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = CurrencyDto.class)),
+                            examples = @ExampleObject(
+                                    name = "Currencies list response example",
+                                    summary = "List of all supported currencies",
+                                    value = """
+                                            [
+                                              {
+                                                "code": "USD",
+                                                "russianName": "Доллар США",
+                                                "countries": "США, Эквадор, Сальвадор, Панама и др."
+                                              },
+                                              {
+                                                "code": "EUR",
+                                                "russianName": "Евро",
+                                                "countries": "Европейский союз, Андорра, Австрия, Бельгия, Хорватия и др."
+                                              },
+                                              {
+                                                "code": "RUB",
+                                                "russianName": "Российский рубль",
+                                                "countries": "Россия"
+                                              }
+                                            ]
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token missing or invalid",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Unauthorized example",
+                                    value = """
+                                            {
+                                              "error": "Unauthorized",
+                                              "message": "Full authentication is required to access this resource"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - insufficient permissions",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "Forbidden example",
+                                    value = """
+                                            {
+                                              "error": "Forbidden",
+                                              "message": "Access Denied"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    @PreAuthorize("hasAnyAuthority('currency:read')")
+    @GetMapping("/currency")
+    public List<CurrencyDto> getCurrencies() {
+        return currencyExchangeService.getAllCurrencies();
+    }
+
+    @Operation(
             summary = "Create or update currency exchange",
             description = "Creates a new currency exchange rate or updates an existing one. " +
                     "Can create exchange rate in both directions simultaneously. " +
-                    "Requires currency-exchange:write permission.",
+                    "Requires currency:write permission.",
             security = @SecurityRequirement(name = "bearerAuth"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Currency exchange data to create or update",
@@ -336,7 +415,7 @@ public class CurrencyExchangeRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('currency-exchange:write')")
+    @PreAuthorize("hasAnyAuthority('currency:write')")
     @PostMapping
     public ResponseEntity<?> createUpdate(@RequestBody CurrencyExchangeDto currencyExchangeDto) {
         return currencyExchangeService.createUpdateCurrencyExchange(currencyExchangeDto);
@@ -345,7 +424,7 @@ public class CurrencyExchangeRestController {
     @Operation(
             summary = "Delete currency exchange",
             description = "Deletes a currency exchange rate by ID. " +
-                    "Requires currency-exchange:write permission.",
+                    "Requires currency:write permission.",
             security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -413,7 +492,7 @@ public class CurrencyExchangeRestController {
                     )
             )
     })
-    @PreAuthorize("hasAnyAuthority('currency-exchange:write')")
+    @PreAuthorize("hasAnyAuthority('currency:write')")
     @DeleteMapping
     public ResponseEntity<?> delete(
             @Parameter(
